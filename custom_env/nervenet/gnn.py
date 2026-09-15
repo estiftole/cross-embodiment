@@ -25,6 +25,7 @@ class UpdateFunction(nn.Module):
         x = torch.cat([hidden_state, msg_aggr], dim=-1)
         return self.net(x)
 
+# TODO: finish this
 class GNN(nn.Module):
     def __init__(self):
         super().__init__()
