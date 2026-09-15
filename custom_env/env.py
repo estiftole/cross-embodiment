@@ -4,7 +4,7 @@ import mujoco
 from gymnasium.envs.mujoco import MujocoEnv
 import numpy as np
 
-class LocomotionEnv(MujocoEnv):
+class CrossEmbodimentEnv(MujocoEnv):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 100}
     DEFAULT_CAMERA_CONFIG = {
         "distance": 5.5,
@@ -84,7 +84,7 @@ class LocomotionEnv(MujocoEnv):
         if os.path.exists(self.tmp_model.name):
             os.remove(self.tmp_model.name)
 
-class BipedEnv(LocomotionEnv):
+class BipedEnv(CrossEmbodimentEnv):
     def __init__(
         self,
         robot_xml_path="custom_models/quadruped.xml",
@@ -224,7 +224,7 @@ class BipedEnv(LocomotionEnv):
             mujoco.mj_forward(self.model, self.data)
             return self.reset()
 
-class QuadrupedEnv(LocomotionEnv):
+class QuadrupedEnv(CrossEmbodimentEnv):
     def __init__(
         self,
         robot_xml_path="custom_models/quadruped.xml",
