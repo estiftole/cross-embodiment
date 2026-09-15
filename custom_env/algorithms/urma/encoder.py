@@ -36,7 +36,7 @@ class AttentionEncoder(nn.Module):
         attn_out, _ = self.mha(x, x, x)
         return attn_out
 
-class CompositeEncoderNetwork(nn.Module):
+class CompositeEncoder(nn.Module):
     def __init__(self, obs_dim: int, desc_dim: int, hidden_dim: int, latent_dim: int, num_heads: int):
         super().__init__()
         self.obs_encoder = ObservationEncoder(obs_dim, latent_dim)
