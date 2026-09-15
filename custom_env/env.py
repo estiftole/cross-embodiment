@@ -224,7 +224,7 @@ class BipedEnv(CrossEmbodimentEnv):
             mujoco.mj_forward(self.model, self.data)
             return self.reset()
 
-class QuadrupedEnv(CrossEmbodimentEnv):
+class QuadpedEnv(CrossEmbodimentEnv):
     def __init__(
         self,
         robot_xml_path="custom_models/quadruped.xml",
@@ -322,31 +322,3 @@ class QuadrupedEnv(CrossEmbodimentEnv):
         mujoco.mj_forward(self.model, self.data)
 
         return self.reset()
-
-
-if __name__ == "__main__":
-    robot_xml_path="custom_models/quadped_wheels.xml"
-
-    env = QuadrupedEnv(robot_xml_path=robot_xml_path, render_mode="human")
-    obs, info = env.reset()
-    zero_action = np.zeros(env.action_space.shape)
-
-    max_steps = 100
-    steps_left = max_steps
-    trials_left = 5
-
-    while (trials_left > 0):
-        obs, reward, terminated, truncated, info = env.step(zero_action)
-        steps_left -= 1
-
-        if terminated or truncated or steps_left == 0:
-            obs, info = env.reset()
-            steps_left = max_steps
-            trials_left -= 1
-
-            env.set_torso_dimensions(0.3, 0.3, 0.025)
-            env.set_leg_lengths(thigh_scale=0.8,shin_scale=0.3)
-            env.set_leg_thickness(thigh_radius=0.04,shin_radius=0.04)
-            env.set_wheel_dimensions(wheel_diameter=0.2)
-
-    env.close()
