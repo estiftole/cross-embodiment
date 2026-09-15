@@ -25,7 +25,7 @@ class MuMLP(nn.Module):
         )
 
     def forward(self, decoder_out, action_latent_vector, joint_product):
-        x = torch.cat([decoder_out, action_latent_vector, joint_product])
+        x = torch.cat([decoder_out, action_latent_vector, joint_product], dim=-1)
         mu = self.net(x)
         return mu
 

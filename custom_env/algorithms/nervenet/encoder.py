@@ -8,5 +8,6 @@ class ObservationEncoder(nn.Module):
             nn.ReLU(),
             nn.Linear(hidden_dim, out_dim)
         )
+
     def forward(self, obs):
         return self.encoder(obs)

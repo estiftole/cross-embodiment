@@ -1,6 +1,5 @@
 import os
 import tempfile
-# import time
 import mujoco
 from gymnasium.envs.mujoco import MujocoEnv
 import numpy as np
@@ -34,7 +33,7 @@ class SwappableLocomotionEnv(MujocoEnv):
             **kwargs
         )
 
-        # setup camera
+        # camera setup
         self.setup_camera()
 
 

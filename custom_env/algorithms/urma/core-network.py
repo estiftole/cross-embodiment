@@ -16,6 +16,6 @@ class CoreNetwork(nn.Module):
         )
 
     def forward(self, joints_latent_vector, feet_latent_vector, general_obs_vector):
-        x = torch.cat([joints_latent_vector, feet_latent_vector, general_obs_vector])
+        x = torch.cat([joints_latent_vector, feet_latent_vector, general_obs_vector], dim=-1)
         action_latent_vector = self.net(x)
         return action_latent_vector
