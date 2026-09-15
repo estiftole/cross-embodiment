@@ -11,8 +11,8 @@ def evaluate_model(model_type: str, num_episodes: int =5, max_steps: int =200, r
 
         env = RecordVideo(
             env,
-            video_folder="./videos",
-            name_prefix=model_type,
+            video_folder=f"./videos/{model_type}",
+            # name_prefix=model_type,
             episode_trigger=lambda episode_id: True,
         )
     env = PrivilegedObservationWrapper(env)
@@ -55,12 +55,12 @@ if __name__ == "__main__":
 
     print(f"Running stress test comparison ({num_episodes} episodes each)...")
 
-    # naive_results = evaluate_model("NAIVE", num_episodes, max_steps, render_mode)
-    # naive_avg = np.mean([r['steps'] for r in naive_results])
-    # print("\n--- Results (Average Steps Survived) ---")
-    # print(f"Naive Policy:     {naive_avg:.2f} steps")
-    # naive_fails = [r for r in naive_results if r['steps'] < max_steps]
-    # print(f"Naive Policy failed on {len(naive_fails)} out of {num_episodes} episodes.")
+    naive_results = evaluate_model("NAIVE", num_episodes, max_steps, render_mode)
+    naive_avg = np.mean([r['steps'] for r in naive_results])
+    print("\n--- Results (Average Steps Survived) ---")
+    print(f"Naive Policy:     {naive_avg:.2f} steps")
+    naive_fails = [r for r in naive_results if r['steps'] < max_steps]
+    print(f"Naive Policy failed on {len(naive_fails)} out of {num_episodes} episodes.")
 
 
     univ_results = evaluate_model("UNIVERSAL", num_episodes, max_steps, render_mode)

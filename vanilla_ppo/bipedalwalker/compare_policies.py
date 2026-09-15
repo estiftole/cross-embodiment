@@ -17,8 +17,8 @@ def evaluate_model(model_type: str, num_episodes: int = 5, max_steps: int = 500,
 
             env = RecordVideo(
                 env,
-                video_folder="./videos",
-                name_prefix=model_type,
+                video_folder=f"./videos/{model_type}",
+                # name_prefix=model_type,
                 episode_trigger=lambda episode_id: True,
             )
         env = PrivilegedObservationWrapper(env)
@@ -70,8 +70,8 @@ def evaluate_model(model_type: str, num_episodes: int = 5, max_steps: int = 500,
 
 if __name__ == "__main__":
     max_steps = 500
-    num_episodes = 200
-    render_mode = None
+    num_episodes = 5
+    render_mode = "rgb_array"
 
     print(f"Running stress test comparison ({num_episodes} episodes each)...")
 
