@@ -27,7 +27,7 @@ class UpdateFunction(nn.Module):
         x = torch.cat([hidden_state, msg_aggr], dim=-1)
         return self.net(x)
 
-class GNN(nn.Module):
+class GraphNN(nn.Module):
     def __init__(self, iterations, hidden_state_dim, msg_dim, updater_hidden_dim, edge_hidden_dim):
         super().__init__()
         self.msg_dim = msg_dim
