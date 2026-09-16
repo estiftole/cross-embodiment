@@ -141,7 +141,7 @@ class CrossEmbodimentEnv(MujocoEnv):
 class BipedEnv(CrossEmbodimentEnv):
     def __init__(
         self,
-        robot_xml_path="custom_models/quadruped.xml",
+        robot_xml_path="custom_models/biped.xml",
         render_mode="human"
     ):
         super().__init__(
@@ -281,7 +281,7 @@ class BipedEnv(CrossEmbodimentEnv):
 class QuadpedEnv(CrossEmbodimentEnv):
     def __init__(
         self,
-        robot_xml_path="custom_models/quadruped.xml",
+        robot_xml_path="custom_models/quadped.xml",
         render_mode="human"
     ):
         super().__init__(
