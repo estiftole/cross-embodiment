@@ -10,7 +10,7 @@ if __name__ == "__main__":
         from gymnasium.wrappers import RecordVideo
         env = RecordVideo(
             env,
-            video_folder="./videos/test_video",
+            video_folder="./videos",
             episode_trigger=lambda episode_id: True,
         )
 
