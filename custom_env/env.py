@@ -146,7 +146,7 @@ class BipedEnv(CrossEmbodimentEnv):
     ):
         super().__init__(
             robot_xml_path=robot_xml_path,
-            render_mode="human"
+            render_mode=render_mode
         )
         self._cache_nominal_geometry()
 
@@ -286,7 +286,7 @@ class QuadpedEnv(CrossEmbodimentEnv):
     ):
         super().__init__(
             robot_xml_path=robot_xml_path,
-            render_mode="human"
+            render_mode=render_mode
         )
 
     def set_torso_dimensions(

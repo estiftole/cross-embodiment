@@ -3,8 +3,17 @@ import numpy as np
 
 if __name__ == "__main__":
     robot_xml_path="custom_models/biped.xml"
+    render_mode = "human"
+    env = BipedEnv(robot_xml_path=robot_xml_path, render_mode=render_mode)
 
-    env = BipedEnv(robot_xml_path=robot_xml_path, render_mode="human")
+    if render_mode=="rgb_array":
+        from gymnasium.wrappers import RecordVideo
+        env = RecordVideo(
+            env,
+            video_folder="./videos/test_video",
+            episode_trigger=lambda episode_id: True,
+        )
+
     obs, info = env.reset()
     zero_action = np.zeros(env.action_space.shape)
 
@@ -17,9 +26,9 @@ if __name__ == "__main__":
         steps_left -= 1
 
         if terminated or truncated or steps_left == 0:
-            obs, info = env.reset()
             steps_left = max_steps
             trials_left -= 1
+            if trials_left > 0: obs, info = env.reset()
 
             # env.set_torso_dimensions(0.3, 0.3, 0.025)
             # env.set_leg_lengths(thigh_scale=0.8,shin_scale=0.3)
