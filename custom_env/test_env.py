@@ -2,9 +2,9 @@ from env import BipedEnv, QuadpedEnv
 import numpy as np
 
 if __name__ == "__main__":
-    robot_xml_path="custom_models/quadped_wheels.xml"
+    robot_xml_path="custom_models/biped.xml"
 
-    env = QuadpedEnv(robot_xml_path=robot_xml_path, render_mode="human")
+    env = BipedEnv(robot_xml_path=robot_xml_path, render_mode="human")
     obs, info = env.reset()
     zero_action = np.zeros(env.action_space.shape)
 
@@ -21,9 +21,9 @@ if __name__ == "__main__":
             steps_left = max_steps
             trials_left -= 1
 
-            env.set_torso_dimensions(0.3, 0.3, 0.025)
-            env.set_leg_lengths(thigh_scale=0.8,shin_scale=0.3)
-            env.set_leg_thickness(thigh_radius=0.04,shin_radius=0.04)
-            env.set_wheel_dimensions(wheel_diameter=0.2)
+            # env.set_torso_dimensions(0.3, 0.3, 0.025)
+            # env.set_leg_lengths(thigh_scale=0.8,shin_scale=0.3)
+            # env.set_leg_thickness(thigh_radius=0.04,shin_radius=0.04)
+            # env.set_wheel_dimensions(wheel_diameter=0.2)
 
     env.close()

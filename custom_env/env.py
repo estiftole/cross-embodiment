@@ -7,7 +7,7 @@ import numpy as np
 class CrossEmbodimentEnv(MujocoEnv):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 100}
     DEFAULT_CAMERA_CONFIG = {
-        "distance": 5.5,
+        "distance": 10,
         "elevation": -35.26,
         "azimuth": 225.0,
         "lookat": [0.0, 0.0, 1.0],
@@ -18,6 +18,15 @@ class CrossEmbodimentEnv(MujocoEnv):
         <mujoco model="walking_scene">
           <include file="{os.path.abspath(scene_xml_path)}"/>
           <include file="{os.path.abspath(robot_xml_path)}"/>
+          <worldbody>
+              <site
+                  name="target"
+                  type="sphere"
+                  pos="0 0 0.5"
+                  size="0.12"
+                  rgba="1 0 0 1"
+              />
+          </worldbody>
         </mujoco>
         """
 
@@ -26,12 +35,23 @@ class CrossEmbodimentEnv(MujocoEnv):
         self.tmp_model.close()
         self.min_torso_height = 0.15
 
+        self.target_pos = np.zeros(2)
+        self.target_bounds = [-2.0, 2.0]
+        self.target_reach_threshold = 0.5
+        self.random_change_prob = 0.005
+
         super().__init__(
             model_path=self.tmp_model.name,
             frame_skip=5,
             observation_space=None,
             default_camera_config=self.DEFAULT_CAMERA_CONFIG,
             **kwargs
+        )
+
+        self.target_site_id = mujoco.mj_name2id(
+            self.model,
+            mujoco.mjtObj.mjOBJ_SITE,
+            "target"
         )
 
         self.setup_camera()
@@ -45,29 +65,61 @@ class CrossEmbodimentEnv(MujocoEnv):
             "torso"
         )
 
+    def _sample_target(self):
+        self.target_pos = self.np_random.uniform(
+            low=self.target_bounds[0],
+            high=self.target_bounds[1],
+            size=2
+        )
+
+        self.model.site_pos[self.target_site_id][:2] = self.target_pos
+        self.model.site_pos[self.target_site_id][2] = 0.5
+
+        mujoco.mj_forward(self.model, self.data)
+
     def step(self, action):
         self.do_simulation(action, self.frame_skip)
 
-        qpos = self.data.qpos.flat.copy()
-        qvel = self.data.qvel.flat.copy()
-        obs = np.concatenate([qpos, qvel])
+        torso_xy = self.data.qpos[:2].copy()
+        torso_vel_xy = self.data.qvel[:2].copy()
 
-        forward_reward = self.data.qvel[0]
+        vector_to_target = self.target_pos - torso_xy
+        distance_to_target = np.linalg.norm(vector_to_target)
+
+        if distance_to_target > 0:
+            direction_to_target = vector_to_target / distance_to_target
+        else:
+            direction_to_target = np.zeros(2)
+
+        progress_reward = np.dot(torso_vel_xy, direction_to_target)
+
         ctrl_cost = 0.001 * np.sum(np.square(action))
-        reward = forward_reward - ctrl_cost
+        reward = progress_reward - ctrl_cost
+
+        if distance_to_target < self.target_reach_threshold:
+            reward += 10.0
+            self._sample_target()
+        # Random teleportation (optional)
+        # elif self.np_random.random() < self.random_change_prob:
+        #     self._sample_target()
 
         torso_z_height = self.data.qpos[2]
         terminated = torso_z_height < self.min_torso_height
+
         if self.render_mode == "human":
             self.render()
 
+        obs = self._get_obs()
         return obs, reward, terminated, False, {}
 
     def _get_obs(self):
         qpos = self.data.qpos.flat.copy()
         qvel = self.data.qvel.flat.copy()
 
-        return np.concatenate([qpos, qvel]).astype(np.float32)
+        torso_xy = qpos[:2]
+        rel_target_pos = self.target_pos - torso_xy
+
+        return np.concatenate([qpos, qvel, rel_target_pos]).astype(np.float32)
 
     def reset_model(self):
         qpos = self.init_qpos.copy()
@@ -76,6 +128,8 @@ class CrossEmbodimentEnv(MujocoEnv):
         qpos += self.np_random.uniform(low=-0.01, high=0.01, size=self.model.nq)
         qvel += self.np_random.uniform(low=-0.01, high=0.01, size=self.model.nv)
         self.set_state(qpos, qvel)
+
+        self._sample_target()
 
         return self._get_obs()
 
@@ -146,7 +200,7 @@ class BipedEnv(CrossEmbodimentEnv):
 
         mujoco.mj_setConst(self.model, self.data)
         mujoco.mj_forward(self.model, self.data)
-        return self.reset()
+
 
     def set_leg_lengths(self, thigh_scale: float = 1.0, shin_scale: float = 1.0):
         thigh_len = self.nominal_thigh_len * thigh_scale
@@ -184,7 +238,7 @@ class BipedEnv(CrossEmbodimentEnv):
 
         mujoco.mj_setConst(self.model, self.data)
         mujoco.mj_forward(self.model, self.data)
-        return self.reset()
+
 
     def set_leg_thickness(self, thigh_radius: float = 0.03, shin_radius: float = 0.025):
         for prefix in ["left", "right"]:
@@ -202,7 +256,7 @@ class BipedEnv(CrossEmbodimentEnv):
 
         mujoco.mj_setConst(self.model, self.data)
         mujoco.mj_forward(self.model, self.data)
-        return self.reset()
+
 
     def set_wheel_dimensions(self, wheel_diameter: float = 0.24, wheel_thickness: float = 0.02):
         radius = wheel_diameter / 2.0
@@ -222,7 +276,7 @@ class BipedEnv(CrossEmbodimentEnv):
         if updated:
             mujoco.mj_setConst(self.model, self.data)
             mujoco.mj_forward(self.model, self.data)
-            return self.reset()
+
 
 class QuadpedEnv(CrossEmbodimentEnv):
     def __init__(
@@ -261,7 +315,7 @@ class QuadpedEnv(CrossEmbodimentEnv):
 
         mujoco.mj_setConst(self.model, self.data)
         mujoco.mj_forward(self.model, self.data)
-        return self.reset()
+
 
     def set_leg_thickness(self, thigh_radius: float = 0.025, shin_radius: float = 0.02):
         for prefix in ["fl", "fr", "bl", "br"]:
@@ -273,7 +327,7 @@ class QuadpedEnv(CrossEmbodimentEnv):
 
         mujoco.mj_setConst(self.model, self.data)
         mujoco.mj_forward(self.model, self.data)
-        return self.reset()
+
 
     def set_wheel_dimensions(self, wheel_diameter: float = 0.16, wheel_thickness: float = 0.03):
         radius = wheel_diameter / 2.0
@@ -289,7 +343,7 @@ class QuadpedEnv(CrossEmbodimentEnv):
 
         mujoco.mj_setConst(self.model, self.data)
         mujoco.mj_forward(self.model, self.data)
-        return self.reset()
+
 
     def set_leg_lengths(self, thigh_scale: float = 1.0, shin_scale: float = 1.0):
         base_v_thigh = np.array([-0.08, 0.0, -0.3])
@@ -320,5 +374,3 @@ class QuadpedEnv(CrossEmbodimentEnv):
 
         mujoco.mj_setConst(self.model, self.data)
         mujoco.mj_forward(self.model, self.data)
-
-        return self.reset()
