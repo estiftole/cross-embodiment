@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 
 class CoreNetwork(nn.Module):
-    def __init__(self, joints_dim, feet_dim, general_obs_dim, goal_dim, hidden_dim, action_latent_dim):
+    def __init__(self, j_latent_dim, ee_latent_dim, target_obs_dim, general_obs_dim, hidden_dim, action_latent_dim):
         super().__init__()
-        in_dim = joints_dim+feet_dim+general_obs_dim+goal_dim
+        in_dim = j_latent_dim+ee_latent_dim+target_obs_dim+general_obs_dim
         self.net = nn.Sequential(
             nn.Linear(in_dim, hidden_dim),
             nn.LayerNorm(hidden_dim),
@@ -15,7 +15,7 @@ class CoreNetwork(nn.Module):
             nn.ELU(),
         )
 
-    def forward(self, joints_latent_vector, feet_latent_vector, general_obs_vector):
-        x = torch.cat([joints_latent_vector, feet_latent_vector, general_obs_vector], dim=-1)
-        action_latent_vector = self.net(x)
-        return action_latent_vector
+    def forward(self, j_latent, ee_latent, target_obs, general_obs):
+        x = torch.cat([j_latent, ee_latent, target_obs, general_obs], dim=-1)
+        action_latent = self.net(x)
+        return action_latent

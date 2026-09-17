@@ -28,7 +28,7 @@ class ObservationEncoder(nn.Module):
         return self.encoder(x)
 
 class CompositeEncoder(nn.Module):
-    def __init__(self, obs_dim: int, desc_dim: int, hidden_dim: int, latent_dim: int, num_heads: int):
+    def __init__(self, obs_dim: int, desc_dim: int, hidden_dim: int, latent_dim: int):
         super().__init__()
         self.obs_encoder = ObservationEncoder(obs_dim, latent_dim)
         self.desc_encoder = DescriptionEncoder(desc_dim, hidden_dim, latent_dim)
@@ -37,14 +37,14 @@ class CompositeEncoder(nn.Module):
         obs_latent = self.obs_encoder(obs)
         desc_latent = self.desc_encoder(desc)
 
-        latent_product = obs_latent * desc_latent
-        return latent_product
+        latent_prod = obs_latent * desc_latent
+        return latent_prod
 
 class AttentionModule(nn.Module):
-    def __init__(self, embed_dim: int, num_heads: int):
+    def __init__(self, embed_dim: int, attn_heads: int):
         super().__init__()
-        self.mha = nn.MultiheadAttention(embed_dim=embed_dim, num_heads=num_heads, batch_first=True)
+        self.mha = nn.MultiheadAttention(embed_dim=embed_dim, attn_heads=attn_heads, batch_first=True)
 
-    def forward(self, latent_product: torch.Tensor):
-        attn_out, _ = self.mha(latent_product, latent_product, latent_product)
+    def forward(self, latent_prod: torch.Tensor):
+        attn_out, _ = self.mha(latent_prod, latent_prod, latent_prod)
         return attn_out

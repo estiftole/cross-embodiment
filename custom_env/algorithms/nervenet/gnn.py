@@ -28,13 +28,13 @@ class UpdateFunction(nn.Module):
         return self.net(x)
 
 class GraphNN(nn.Module):
-    def __init__(self, iterations, hidden_state_dim, msg_dim, updater_hidden_dim, edge_hidden_dim):
+    def __init__(self, hidden_state_dim, updater_hidden_dim, msg_hidden_dim, msg_dim, iterations):
         super().__init__()
         self.msg_dim = msg_dim
         self.iterations = iterations
 
-        self.broadcast_edge = MessageFunction(hidden_state_dim, edge_hidden_dim, msg_dim)
-        self.phys_edge = MessageFunction(hidden_state_dim, edge_hidden_dim, msg_dim)
+        self.broadcast_edge = MessageFunction(hidden_state_dim, msg_hidden_dim, msg_dim)
+        self.phys_edge = MessageFunction(hidden_state_dim, msg_hidden_dim, msg_dim)
         self.node_updater = UpdateFunction(hidden_state_dim, updater_hidden_dim, msg_dim)
 
     def forward(self, phys_hidden, goal_hidden, senders, receivers):

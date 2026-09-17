@@ -1,12 +1,12 @@
 import torch.nn as nn
 
 class ObservationEncoder(nn.Module):
-    def __init__(self, in_dim, hidden_dim, out_dim):
+    def __init__(self, obs_dim, hidden_dim, hidden_state_dim):
         super().__init__()
         self.encoder = nn.Sequential(
-            nn.Linear(in_dim, hidden_dim),
+            nn.Linear(obs_dim, hidden_dim),
             nn.ReLU(),
-            nn.Linear(hidden_dim, out_dim)
+            nn.Linear(hidden_dim, hidden_state_dim)
         )
 
     def forward(self, obs):
