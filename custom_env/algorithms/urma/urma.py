@@ -1,4 +1,4 @@
-from encoder import CompositeEncoder
+from encoder import CompositeEncoder, AttentionModule
 from core_network import CoreNetwork
 from universal_decoder import UniversalDecoder
 
