@@ -55,6 +55,7 @@ class CrossEmbodimentEnv(MujocoEnv):
         )
 
         self.setup_camera()
+        self._init_embodiment_metadata()
 
     def setup_camera(self):
         self.render()
@@ -64,6 +65,48 @@ class CrossEmbodimentEnv(MujocoEnv):
             mujoco.mjtObj.mjOBJ_BODY,
             "torso"
         )
+
+    def _init_embodiment_metadata(self):
+        self.actuated_jnt_ids = []
+        self.is_wheel_joint = []
+        joint_descriptors = []
+
+        # cache joint descriptions
+        for i in range(self.model.njnt):
+            jnt_type = self.model.jnt_type[i]
+            if jnt_type == mujoco.mjtJoint.mjJNT_FREE:
+                continue
+
+            jnt_name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_JOINT, i) or ""
+
+            is_wheel = 1.0 if ("wheel" in jnt_name.lower() or self.model.jnt_limited[i] == 0) else 0.0
+            limits = self.model.jnt_range[i]
+            jnt_pos = self.model.jnt_pos[i]
+            jnt_axis = self.model.jnt_axis[i]
+
+            descriptor = np.concatenate([
+                [is_wheel, limits[0], limits[1]],
+                jnt_pos,
+                jnt_axis
+            ]).astype(np.float32)
+
+            self.actuated_jnt_ids.append(i)
+            self.is_wheel_joint.append(is_wheel)
+            joint_descriptors.append(descriptor)
+
+        self.cached_joint_descriptors = np.array(joint_descriptors, dtype=np.float32)
+
+        # cache end-effector descriptions
+        self.ee_site_ids = []
+        self.ee_is_wheel = []
+        for i in range(self.model.nsite):
+            site_name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_SITE, i) or ""
+            if "foot" in site_name.lower():
+                self.ee_site_ids.append(i)
+                self.ee_is_wheel.append(0.0)
+            elif "wheel" in site_name.lower():
+                self.ee_site_ids.append(i)
+                self.ee_is_wheel.append(1.0)
 
     def _sample_target(self):
         self.target_pos = self.np_random.uniform(
@@ -99,9 +142,6 @@ class CrossEmbodimentEnv(MujocoEnv):
         if distance_to_target < self.target_reach_threshold:
             reward += 10.0
             self._sample_target()
-        # Random teleportation (optional)
-        # elif self.np_random.random() < self.random_change_prob:
-        #     self._sample_target()
 
         torso_z_height = self.data.qpos[2]
         terminated = torso_z_height < self.min_torso_height
@@ -113,13 +153,48 @@ class CrossEmbodimentEnv(MujocoEnv):
         return obs, reward, terminated, False, {}
 
     def _get_obs(self):
-        qpos = self.data.qpos.flat.copy()
-        qvel = self.data.qvel.flat.copy()
-
-        torso_xy = qpos[:2]
+        # get target delta
+        torso_xy = self.data.qpos[:2]
         rel_target_pos = self.target_pos - torso_xy
 
-        return np.concatenate([qpos, qvel, rel_target_pos]).astype(np.float32)
+        # get base linear and angular velocities
+        base_linvel = self.data.qvel[:3]
+        base_angvel = self.data.qvel[3:6]
+        base_obs = np.concatenate([base_linvel, base_angvel]).astype(np.float32)
+
+        # get joint observations
+        joint_qpos = self.data.qpos[7:].copy()
+        joint_qvel = self.data.qvel[6:].copy()
+
+        processed_qpos = []
+        for q, is_wheel in zip(joint_qpos, self.is_wheel_joint):
+            if is_wheel:
+                processed_qpos.extend([np.sin(q), np.cos(q)])
+            else:
+                processed_qpos.append(q)
+
+        joint_obs = np.concatenate([processed_qpos, joint_qvel]).astype(np.float32)
+
+        # get end-effector observations
+        ee_obs_list = []
+        root_pos = self.data.qpos[:3]
+        for site_id, is_wheel in zip(self.ee_site_ids, self.ee_is_wheel):
+            rel_site_pos = self.data.site_xpos[site_id] - root_pos
+            body_id = self.model.site_bodyid[site_id]
+            contact_force = self.data.cfrc_ext[body_id][:3]
+            ee_vec = np.concatenate([rel_site_pos, contact_force, [is_wheel]])
+            ee_obs_list.append(ee_vec)
+
+        ee_obs = np.array(ee_obs_list, dtype=np.float32) if ee_obs_list else np.zeros((0, 7), dtype=np.float32)
+
+        # pack all this and return
+        return {
+            "target_obs": rel_target_pos,
+            "base_obs": base_obs,
+            "joint_obs": joint_obs,
+            "joint_desc": self.cached_joint_descriptors,
+            "ee_obs": ee_obs
+        }
 
     def reset_model(self):
         qpos = self.init_qpos.copy()
