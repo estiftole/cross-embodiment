@@ -41,7 +41,7 @@ class SigmaLayer(nn.Module):
         log_std = torch.clamp(log_std, self.log_std_min, self.log_std_max)
         return torch.exp(log_std)
 
-class UniversalDecoder(nn.Module):
+class ActionDecoder(nn.Module):
     def __init__(self,
         joint_desc_dim,
         decoder_hidden_dim,
