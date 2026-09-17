@@ -18,6 +18,7 @@
           <joint name="fl_knee" type="hinge" axis="0 1 0" range="-120 0"/>
           <geom name="fl_shin_geom" type="capsule" fromto="0 0 0 0.08 0 -0.3" size="0.02"/>
           <geom name="fl_foot" type="sphere" pos="0.08 0 -0.3" size="0.035"/>
+          <site name="fl_foot_site" pos="0.08 0 -0.3"/>
         </body>
       </body>
 
@@ -29,6 +30,7 @@
           <joint name="fr_knee" type="hinge" axis="0 1 0" range="-120 0"/>
           <geom name="fr_shin_geom" type="capsule" fromto="0 0 0 0.08 0 -0.3" size="0.02"/>
           <geom name="fr_foot" type="sphere" pos="0.08 0 -0.3" size="0.035"/>
+          <site name="fr_foot_site" pos="0.08 0 -0.3"/>
         </body>
       </body>
 
@@ -40,6 +42,7 @@
           <joint name="bl_knee" type="hinge" axis="0 1 0" range="-120 0"/>
           <geom name="bl_shin_geom" type="capsule" fromto="0 0 0 0.08 0 -0.3" size="0.02"/>
           <geom name="bl_foot" type="sphere" pos="0.08 0 -0.3" size="0.035"/>
+          <site name="bl_foot_site" pos="0.08 0 -0.3"/>
         </body>
       </body>
 
@@ -51,6 +54,7 @@
           <joint name="br_knee" type="hinge" axis="0 1 0" range="-120 0"/>
           <geom name="br_shin_geom" type="capsule" fromto="0 0 0 0.08 0 -0.3" size="0.02"/>
           <geom name="br_foot" type="sphere" pos="0.08 0 -0.3" size="0.035"/>
+          <site name="br_foot_site" pos="0.08 0 -0.3"/>
         </body>
       </body>
     </body>

@@ -22,6 +22,7 @@
             <joint name="fl_wheel" type="hinge" axis="0 1 0" limited="false"/>
             <geom name="fl_wheel_disc" type="cylinder" size="0.08 0.015" quat="0.7071 0.7071 0 0"
                   friction="1.5 0.01 0.005" rgba="0.45 0.7 0.5 1"/>
+            <site name="fl_wheel_site" pos="0 0 0"/>
           </body>
         </body>
       </body>
@@ -37,6 +38,7 @@
             <joint name="fr_wheel" type="hinge" axis="0 1 0" limited="false"/>
             <geom name="fr_wheel_disc" type="cylinder" size="0.08 0.015" quat="0.7071 0.7071 0 0"
                   friction="1.5 0.01 0.005" rgba="0.45 0.7 0.5 1"/>
+            <site name="fr_wheel_site" pos="0 0 0"/>
           </body>
         </body>
       </body>
@@ -52,6 +54,7 @@
             <joint name="bl_wheel" type="hinge" axis="0 1 0" limited="false"/>
             <geom name="bl_wheel_disc" type="cylinder" size="0.08 0.015" quat="0.7071 0.7071 0 0"
                   friction="1.5 0.01 0.005" rgba="0.45 0.7 0.5 1"/>
+            <site name="bl_wheel_site" pos="0 0 0"/>
           </body>
         </body>
       </body>
@@ -67,6 +70,7 @@
             <joint name="br_wheel" type="hinge" axis="0 1 0" limited="false"/>
             <geom name="br_wheel_disc" type="cylinder" size="0.08 0.015" quat="0.7071 0.7071 0 0"
                   friction="1.5 0.01 0.005" rgba="0.45 0.7 0.5 1"/>
+            <site name="br_wheel_site" pos="0 0 0"/>
           </body>
         </body>
       </body>

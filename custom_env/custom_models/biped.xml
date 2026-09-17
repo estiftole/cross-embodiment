@@ -18,6 +18,7 @@
           <geom name="left_shin_geom" type="cylinder" fromto="0 0 0 0 0 -0.6" size="0.025"/>
           <body name="left_foot" pos="0 0 -0.6">
              <geom name="left_foot_box" type="box" size="0.12 0.07 0.02" pos="0.06 0 -0.02"/>
+             <site name="left_foot_site" pos="0.06 0 -0.02"/>
           </body>
         </body>
       </body>
@@ -30,6 +31,7 @@
           <geom name="right_shin_geom" type="cylinder" fromto="0 0 0 0 0 -0.6" size="0.025"/>
           <body name="right_foot" pos="0 0 -0.6">
              <geom name="right_foot_box" type="box" size="0.12 0.07 0.02" pos="0.06 0 -0.02"/>
+             <site name="right_foot_site" pos="0.06 0 -0.02"/>
           </body>
         </body>
       </body>
