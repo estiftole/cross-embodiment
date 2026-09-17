@@ -2,9 +2,7 @@ from encoder import CompositeEncoder, AttentionModule
 from core_network import CoreNetwork
 from decoder import ActionDecoder
 
-import torch
 import torch.nn as nn
-
 
 class URMA(nn.Module):
     def __init__(self,
