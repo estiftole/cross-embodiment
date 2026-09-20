@@ -1,6 +1,6 @@
-from encoder import CompositeEncoder, AttentionModule
-from core_network import CoreNetwork
-from decoder import ActionDecoder
+from .encoder import CompositeEncoder, AttentionModule
+from .core_network import CoreNetwork
+from .decoder import ActionDecoder
 
 import torch.nn as nn
 

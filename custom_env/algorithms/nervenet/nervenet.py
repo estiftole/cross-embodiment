@@ -1,6 +1,6 @@
-from encoder import ObservationEncoder
-from gnn import GraphNN
-from decoder import ActionDecoder
+from .encoder import ObservationEncoder
+from .gnn import GraphNN
+from .decoder import ActionDecoder
 
 import torch
 import torch.nn as nn
