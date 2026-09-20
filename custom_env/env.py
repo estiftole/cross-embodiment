@@ -107,7 +107,6 @@ class CrossEmbodimentEnv(MujocoEnv):
                 site_rest_pos = self.model.site_pos[i]
                 ee_desc = np.concatenate([[is_wheel], site_rest_pos]).astype(np.float32)
 
-                self.ee_is_wheel.append(is_wheel)
                 self.ee_site_ids.append(i)
                 ee_desc.append(ee_desc)
 
