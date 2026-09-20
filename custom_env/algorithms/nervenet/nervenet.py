@@ -5,6 +5,26 @@ from .decoder import ActionDecoder
 import torch
 import torch.nn as nn
 
+def prepare_inputs(obs_dict, graph_meta, device="cpu"):
+
+    base_obs = obs_dict["base_obs"]
+    target_obs = obs_dict["target_obs"]
+
+    j_obs = torch.tensor(obs_dict["joint_obs"], dtype=torch.float32, device=device).unsqueeze(0)
+
+    senders = graph_meta["senders"].to(device)
+    receivers = graph_meta["receivers"].to(device)
+    actuatable_nodes = graph_meta["actuatable_nodes"].to(device)
+
+    return {
+        "target_obs": target_obs,
+        "base_obs": base_obs,
+        "j_obs": j_obs,
+        "senders": senders,
+        "receivers": receivers,
+        "actuatable_nodes": actuatable_nodes
+    }
+
 class NerveNet(nn.Module):
     def __init__(self,
         j_obs_dim, target_obs_dim, base_obs_dim,

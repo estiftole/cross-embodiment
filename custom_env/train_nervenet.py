@@ -1,1 +1,1 @@
-from algorithms.nervenet.nervenet import NerveNet
+from algorithms.nervenet.nervenet import prepare_inputs, NerveNet

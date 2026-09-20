@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
     max_steps = 100
     steps_left = max_steps
-    trials_left = 5
+    trials_left = 1
 
     while (trials_left > 0):
         obs, reward, terminated, truncated, info = env.step(zero_action)
@@ -32,6 +32,7 @@ if __name__ == "__main__":
             steps_left = max_steps
             trials_left -= 1
             if trials_left > 0: obs, info = env.reset()
+            print(env._extract_graph_topology())
 
             env.set_torso_dimensions(0.3, 0.3, 0.025)
             env.set_leg_lengths(thigh_scale=0.8,shin_scale=0.3)

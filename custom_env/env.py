@@ -3,6 +3,7 @@ import tempfile
 import mujoco
 from gymnasium.envs.mujoco import MujocoEnv
 import numpy as np
+import torch
 
 class CrossEmbodimentEnv(MujocoEnv):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 100}
@@ -116,6 +117,28 @@ class CrossEmbodimentEnv(MujocoEnv):
             else np.zeros((0, 4), dtype=np.float32)
         )
 
+    def _extract_graph_topology(self):
+        senders = []
+        receivers = []
+
+        # root torso is Node 0
+        actuatable_nodes = list(range(1, len(self.actuated_jnt_ids) + 1))
+
+        for node_idx, j_id in enumerate(self.actuated_jnt_ids, start=1):
+            body_id = self.model.jnt_bodyid[j_id]
+            parent_body_id = self.model.body_parentid[body_id]
+
+            parent_node = 0 if parent_body_id == 1 else parent_body_id - 1
+
+            senders.extend([parent_node, node_idx])
+            receivers.extend([node_idx, parent_node])
+
+        return {
+            "senders": torch.tensor(senders, dtype=torch.long),
+            "receivers": torch.tensor(receivers, dtype=torch.long),
+            "actuatable_nodes": torch.tensor(actuatable_nodes, dtype=torch.long)
+        }
+
     def _sample_target(self):
         self.target_pos = self.np_random.uniform(
             low=self.target_bounds[0],
@@ -171,17 +194,22 @@ class CrossEmbodimentEnv(MujocoEnv):
         base_obs = np.concatenate([base_linvel, base_angvel]).astype(np.float32)
 
         # get joint observations
-        joint_qpos = self.data.qpos[7:].copy()
-        joint_qvel = self.data.qvel[6:].copy()
+        joint_obs_list = []
+        for j_id, is_wheel in zip(self.actuated_jnt_ids, self.is_wheel_joint):
+            qpos_adr = self.model.jnt_qposadr[j_id]
+            dof_adr = self.model.jnt_dofadr[j_id]
 
-        processed_qpos = []
-        for q, is_wheel in zip(joint_qpos, self.is_wheel_joint):
+            q = self.data.qpos[qpos_adr]
+            qvel = self.data.qvel[dof_adr]
+
             if is_wheel:
-                processed_qpos.extend([np.sin(q), np.cos(q)])
+                # Wheel node feature: [sin(q), cos(q), qvel]
+                joint_obs_list.append([np.sin(q), np.cos(q), qvel])
             else:
-                processed_qpos.append(q)
+                # Hinge node feature: [q, qvel, 0.0] (padded for uniform (N_joints, 3) matrix shape)
+                joint_obs_list.append([q, qvel, 0.0])
 
-        joint_obs = np.concatenate([processed_qpos, joint_qvel]).astype(np.float32)
+        joint_obs = np.array(joint_obs_list, dtype=np.float32) if joint_obs_list else np.zeros((0, 3), dtype=np.float32)
 
         # get end-effector observations
         ee_obs_list = []
@@ -189,7 +217,8 @@ class CrossEmbodimentEnv(MujocoEnv):
         for site_id in self.ee_site_ids:
             rel_site_pos = self.data.site_xpos[site_id] - root_pos
             body_id = self.model.site_bodyid[site_id]
-            contact_force = self.data.cfrc_ext[body_id][:3]
+            # contact_force = self.data.cfrc_ext[body_id][:3]
+            contact_force = self.data.cfrc_ext[body_id][3:6]
 
             ee_vec = np.concatenate([rel_site_pos, contact_force]).astype(np.float32)
             ee_obs_list.append(ee_vec)
