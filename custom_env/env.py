@@ -105,10 +105,10 @@ class CrossEmbodimentEnv(MujocoEnv):
             if "foot" in site_name.lower() or "wheel" in site_name.lower():
                 is_wheel = 1.0 if "wheel" in site_name.lower() else 0.0
                 site_rest_pos = self.model.site_pos[i]
-                ee_desc = np.concatenate([[is_wheel], site_rest_pos]).astype(np.float32)
+                ee_description = np.concatenate([[is_wheel], site_rest_pos]).astype(np.float32)
 
                 self.ee_site_ids.append(i)
-                ee_desc.append(ee_desc)
+                ee_desc.append(ee_description)
 
         self.cached_ee_descriptors = (
             np.array(ee_desc, dtype=np.float32)
