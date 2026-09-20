@@ -195,6 +195,7 @@ class CrossEmbodimentEnv(MujocoEnv):
             ee_obs_list.append(ee_vec)
 
         ee_obs = np.array(ee_obs_list, dtype=np.float32) if ee_obs_list else np.zeros((0, 6), dtype=np.float32)
+
         # pack all this and return
         return {
             "target_obs": rel_target_pos,
