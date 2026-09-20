@@ -98,15 +98,24 @@ class CrossEmbodimentEnv(MujocoEnv):
 
         # cache end-effector descriptions
         self.ee_site_ids = []
-        self.ee_is_wheel = []
+        ee_desc = []
+
         for i in range(self.model.nsite):
             site_name = mujoco.mj_id2name(self.model, mujoco.mjtObj.mjOBJ_SITE, i) or ""
-            if "foot" in site_name.lower():
+            if "foot" in site_name.lower() or "wheel" in site_name.lower():
+                is_wheel = 1.0 if "wheel" in site_name.lower() else 0.0
+                site_rest_pos = self.model.site_pos[i]
+                ee_desc = np.concatenate([[is_wheel], site_rest_pos]).astype(np.float32)
+
+                self.ee_is_wheel.append(is_wheel)
                 self.ee_site_ids.append(i)
-                self.ee_is_wheel.append(0.0)
-            elif "wheel" in site_name.lower():
-                self.ee_site_ids.append(i)
-                self.ee_is_wheel.append(1.0)
+                ee_desc.append(ee_desc)
+
+        self.cached_ee_descriptors = (
+            np.array(ee_desc, dtype=np.float32)
+            if ee_desc
+            else np.zeros((0, 4), dtype=np.float32)
+        )
 
     def _sample_target(self):
         self.target_pos = self.np_random.uniform(
@@ -178,22 +187,25 @@ class CrossEmbodimentEnv(MujocoEnv):
         # get end-effector observations
         ee_obs_list = []
         root_pos = self.data.qpos[:3]
-        for site_id, is_wheel in zip(self.ee_site_ids, self.ee_is_wheel):
+        for site_id in self.ee_site_ids:
             rel_site_pos = self.data.site_xpos[site_id] - root_pos
             body_id = self.model.site_bodyid[site_id]
             contact_force = self.data.cfrc_ext[body_id][:3]
-            ee_vec = np.concatenate([rel_site_pos, contact_force, [is_wheel]])
+
+            ee_vec = np.concatenate([rel_site_pos, contact_force]).astype(np.float32)
             ee_obs_list.append(ee_vec)
 
-        ee_obs = np.array(ee_obs_list, dtype=np.float32) if ee_obs_list else np.zeros((0, 7), dtype=np.float32)
-
+        ee_obs = np.array(ee_obs_list, dtype=np.float32) if ee_obs_list else np.zeros((0, 6), dtype=np.float32)
         # pack all this and return
         return {
             "target_obs": rel_target_pos,
             "base_obs": base_obs,
+
             "joint_obs": joint_obs,
             "joint_desc": self.cached_joint_descriptors,
-            "ee_obs": ee_obs
+
+            "ee_obs": ee_obs,
+            "ee_desc": self.cached_ee_descriptors,
         }
 
     def reset_model(self):
