@@ -113,3 +113,36 @@ if __name__ == "__main__":
                 value_loss.backward()
                 optimizer.step()
     env.close()
+
+    checkpoint = {
+        "actor_state_dict": actor.state_dict(),
+        "critic_state_dict": critic.state_dict(),
+        "optimizer_state_dict": optimizer.state_dict(),
+
+        "config": {
+            "j_obs_dim": j_obs_dim,
+            "j_desc_dim": j_desc_dim,
+            "ee_obs_dim": ee_obs_dim,
+            "ee_desc_dim": ee_desc_dim,
+            "base_obs_dim": base_obs_dim,
+            "target_obs_dim": target_obs_dim,
+            "action_dim": 1,
+
+            "enc_hidden_dim": 32,
+            "j_latent_dim": 64,
+            "ee_latent_dim": 64,
+            "embed_dim": 64,
+            "attn_heads": 4,
+            "hidden_dim": 128,
+            "action_latent_dim": 64,
+            "dec_hidden_dim": 64,
+            "dec_out_dim": 64,
+            "mu_hidden_dim": 64,
+        }
+    }
+    torch.save(checkpoint, "urma_checkpoint.pth")
+
+# checkpoint = torch.load("urma_checkpoint.pth")
+# actor = URMAActor(**checkpoint["config"])
+# actor.load_state_dict(checkpoint["actor_state_dict"])
+# actor.eval()

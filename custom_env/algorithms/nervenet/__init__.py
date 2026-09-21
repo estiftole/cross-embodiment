@@ -4,6 +4,7 @@ from .decoder import ActionDecoder
 
 import torch
 import torch.nn as nn
+from torch.distributions import Normal
 
 def prepare_inputs(obs, graph_meta, device="cpu"):
 
@@ -38,7 +39,7 @@ class NerveNetActor(nn.Module):
         msg_dim,
         iterations,
 
-        action_dec_hidden_dim,
+        dec_hidden_dim,
         action_dim
     ) -> None:
         super().__init__()
@@ -47,7 +48,9 @@ class NerveNetActor(nn.Module):
         self.base_enc = ObservationEncoder(base_obs_dim, obs_enc_hidden_dim, hidden_state_dim)
 
         self.gnn = GraphNN(hidden_state_dim, updater_hidden_dim, msg_hidden_dim, msg_dim, iterations)
-        self.action_dec = ActionDecoder(hidden_state_dim, action_dec_hidden_dim, action_dim)
+        self.action_dec = ActionDecoder(hidden_state_dim, dec_hidden_dim, action_dim)
+
+        self.log_std = torch.nn.Parameter(torch.zeros(1, requires_grad=True))
 
     def forward(self, target_obs, base_obs, j_obs, senders, receivers, actuatable_nodes):
         target_hidden = self.target_enc(target_obs)
@@ -57,9 +60,26 @@ class NerveNetActor(nn.Module):
         phys_hidden = torch.cat([base_hidden, j_hidden], dim=1)
         # motor_joint_states = self.gnn(phys_hidden, target_hidden, senders, receivers)
         motor_joint_states = self.gnn(phys_hidden, target_hidden, senders, receivers)[:, actuatable_nodes, :]
-        actions = self.action_dec(motor_joint_states)
+        mu = self.action_dec(motor_joint_states)
 
-        return actions
+        return mu
+
+    def get_action_and_log_prob(self, target_obs, base_obs, j_obs, senders, receivers, actuatable_nodes, action=None):
+        mu = self.forward(target_obs, base_obs, j_obs, senders, receivers, actuatable_nodes)
+        std = torch.exp(self.log_std)
+        dist = Normal(mu, std)
+
+        if action is None:
+            action = dist.sample()
+
+        log_prob = dist.log_prob(action)
+        entropy = dist.entropy()
+
+        while log_prob.dim() > 1:
+            log_prob = log_prob.sum(dim=-1)
+            entropy = entropy.sum(dim=-1)
+
+        return action, log_prob, entropy
 
 
 class NerveNetCritic(nn.Module):
@@ -73,7 +93,7 @@ class NerveNetCritic(nn.Module):
         msg_dim,
         iterations,
 
-        value_dec_hidden_dim
+        dec_hidden_dim
     ) -> None:
         super().__init__()
         self.target_enc = ObservationEncoder(target_obs_dim, obs_enc_hidden_dim, hidden_state_dim)
@@ -83,9 +103,9 @@ class NerveNetCritic(nn.Module):
         self.gnn = GraphNN(hidden_state_dim, updater_hidden_dim, msg_hidden_dim, msg_dim, iterations)
 
         self.value_dec = nn.Sequential(
-            nn.Linear(hidden_state_dim, value_dec_hidden_dim),
+            nn.Linear(hidden_state_dim, dec_hidden_dim),
             nn.ReLU(),
-            nn.Linear(value_dec_hidden_dim, 1)
+            nn.Linear(dec_hidden_dim, 1)
         )
 
     def forward(self, target_obs, base_obs, j_obs, senders, receivers):
