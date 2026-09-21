@@ -10,7 +10,7 @@ def prepare_inputs(obs, graph_meta, device="cpu"):
     base_obs = torch.as_tensor(obs["base_obs"], dtype=torch.float32, device=device).unsqueeze(0)
     target_obs = torch.as_tensor(obs["target_obs"], dtype=torch.float32, device=device).unsqueeze(0)
 
-    j_obs = torch.as_tensor(obs["joint_obs"], dtype=torch.float32, device=device)
+    j_obs = torch.as_tensor(obs["j_obs"], dtype=torch.float32, device=device)
     if j_obs.ndim == 2:
         j_obs = j_obs.unsqueeze(0)
 

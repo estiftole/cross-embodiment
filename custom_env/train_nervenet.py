@@ -1,5 +1,5 @@
 from algorithms.nervenet.nervenet import prepare_inputs, NerveNetActor, NerveNetCritic
-from env import QuadpedEnv
+from env import BipedEnv
 import numpy as np
 
 import torch
@@ -7,7 +7,7 @@ from torch.distributions import Normal
 
 
 if __name__ == "__main__":
-    env = QuadpedEnv(render_mode="human")
+    env = BipedEnv(render_mode="human")
     obs, info = env.reset()
 
     epochs = 10
@@ -47,10 +47,10 @@ if __name__ == "__main__":
         value_dec_hidden_dim=32
     )
 
-    print("Initiated nervenet")
     log_std = torch.nn.Parameter(torch.zeros(1, requires_grad=True))
     optimizer = torch.optim.Adam(list(actor.parameters()) + list(critic.parameters()) + [log_std], lr=lr)
 
+    print("Initiated actor and critic")
     for episode in range(num_episodes):
         print(f"Episode: {episode}")
         states, actions, log_probs, rewards, values, dones = [], [], [], [], [], []

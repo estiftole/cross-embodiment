@@ -177,6 +177,7 @@ class CrossEmbodimentEnv(MujocoEnv):
 
         torso_z_height = self.data.qpos[2]
         terminated = torso_z_height < self.min_torso_height
+        print(torso_z_height, self.min_torso_height)
 
         if self.render_mode == "human":
             self.render()
@@ -231,8 +232,8 @@ class CrossEmbodimentEnv(MujocoEnv):
             "target_obs": rel_target_pos,
             "base_obs": base_obs,
 
-            "joint_obs": joint_obs,
-            "joint_desc": self.cached_joint_descriptors,
+            "j_obs": joint_obs,
+            "j_desc": self.cached_joint_descriptors,
 
             "ee_obs": ee_obs,
             "ee_desc": self.cached_ee_descriptors,

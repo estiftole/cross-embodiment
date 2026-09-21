@@ -25,7 +25,10 @@ class MuMLP(nn.Module):
         )
 
     def forward(self, decoder_out, action_latent, j_prod):
-        x = torch.cat([decoder_out, action_latent, j_prod], dim=-1)
+        batch_size, num_joints, _ = j_prod.shape
+        action_latent_expanded = action_latent.unsqueeze(1).expand(-1, num_joints, -1)
+
+        x = torch.cat([decoder_out, action_latent_expanded, j_prod], dim=-1)
         mu = self.net(x)
         return mu
 

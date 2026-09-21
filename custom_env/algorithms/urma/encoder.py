@@ -41,9 +41,9 @@ class CompositeEncoder(nn.Module):
         return latent_prod
 
 class AttentionModule(nn.Module):
-    def __init__(self, embed_dim: int, attn_heads: int):
+    def __init__(self, embed_dim: int, num_heads: int):
         super().__init__()
-        self.mha = nn.MultiheadAttention(embed_dim=embed_dim, attn_heads=attn_heads, batch_first=True)
+        self.mha = nn.MultiheadAttention(embed_dim=embed_dim, num_heads=num_heads, batch_first=True)
 
     def forward(self, latent_prod: torch.Tensor):
         attn_out, _ = self.mha(latent_prod, latent_prod, latent_prod)
