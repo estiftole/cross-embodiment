@@ -7,14 +7,16 @@ import torch.nn as nn
 
 def prepare_inputs(obs, graph_meta, device="cpu"):
 
-    base_obs = obs["base_obs"]
-    target_obs = obs["target_obs"]
+    base_obs = torch.as_tensor(obs["base_obs"], dtype=torch.float32, device=device).unsqueeze(0)
+    target_obs = torch.as_tensor(obs["target_obs"], dtype=torch.float32, device=device).unsqueeze(0)
 
-    j_obs = torch.tensor(obs["joint_obs"], dtype=torch.float32, device=device).unsqueeze(0)
+    j_obs = torch.as_tensor(obs["joint_obs"], dtype=torch.float32, device=device)
+    if j_obs.ndim == 2:
+        j_obs = j_obs.unsqueeze(0)
 
-    senders = graph_meta["senders"].to(device)
-    receivers = graph_meta["receivers"].to(device)
-    actuatable_nodes = graph_meta["actuatable_nodes"].to(device)
+    senders = torch.as_tensor(graph_meta["senders"], dtype=torch.long, device=device)
+    receivers = torch.as_tensor(graph_meta["receivers"], dtype=torch.long, device=device)
+    actuatable_nodes = torch.as_tensor(graph_meta["actuatable_nodes"], dtype=torch.long, device=device)
 
     return {
         "target_obs": target_obs,
@@ -50,7 +52,7 @@ class NerveNetActor(nn.Module):
     def forward(self, target_obs, base_obs, j_obs, senders, receivers, actuatable_nodes):
         target_hidden = self.target_enc(target_obs)
         j_hidden = self.j_enc(j_obs)
-        base_hidden = self.base_enc(base_obs)
+        base_hidden = self.base_enc(base_obs).unsqueeze(1)
 
         phys_hidden = torch.cat([base_hidden, j_hidden], dim=1)
         # motor_joint_states = self.gnn(phys_hidden, target_hidden, senders, receivers)
@@ -89,7 +91,7 @@ class NerveNetCritic(nn.Module):
     def forward(self, target_obs, base_obs, j_obs, senders, receivers):
         target_hidden = self.target_enc(target_obs)
         j_hidden = self.j_enc(j_obs)
-        base_hidden = self.base_enc(base_obs)
+        base_hidden = self.base_enc(base_obs).unsqueeze(1)
 
         phys_hidden = torch.cat([base_hidden, j_hidden], dim=1)
         updated_phys = self.gnn(phys_hidden, target_hidden, senders, receivers)

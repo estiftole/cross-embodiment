@@ -260,7 +260,7 @@ class BipedEnv(CrossEmbodimentEnv):
     def __init__(
         self,
         robot_xml_path="custom_models/biped.xml",
-        render_mode="human"
+        render_mode="rgb_array"
     ):
         super().__init__(
             robot_xml_path=robot_xml_path,
@@ -400,7 +400,7 @@ class QuadpedEnv(CrossEmbodimentEnv):
     def __init__(
         self,
         robot_xml_path="custom_models/quadped.xml",
-        render_mode="human"
+        render_mode="rgb_array"
     ):
         super().__init__(
             robot_xml_path=robot_xml_path,
