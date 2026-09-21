@@ -1,7 +1,7 @@
 from algorithms.urma import URMAActor, URMACritic
 from env import BipedEnv
-
 import torch
+
 
 if __name__ == "__main__":
     env = BipedEnv(render_mode="human")
@@ -112,6 +112,7 @@ if __name__ == "__main__":
                 optimizer.zero_grad()
                 value_loss.backward()
                 optimizer.step()
+
     env.close()
 
     checkpoint = {

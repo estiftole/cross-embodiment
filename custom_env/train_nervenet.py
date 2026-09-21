@@ -1,6 +1,5 @@
 from algorithms.nervenet import prepare_inputs, NerveNetActor, NerveNetCritic
 from env import BipedEnv
-
 import torch
 
 
@@ -121,8 +120,8 @@ if __name__ == "__main__":
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-    env.close()
 
+    env.close()
 
     checkpoint = {
         "actor_state_dict": actor.state_dict(),
