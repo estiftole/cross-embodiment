@@ -1,6 +1,5 @@
 from algorithms.nervenet.nervenet import prepare_inputs, NerveNetActor, NerveNetCritic
 from env import BipedEnv
-import numpy as np
 
 import torch
 from torch.distributions import Normal
