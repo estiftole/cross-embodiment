@@ -177,7 +177,6 @@ class CrossEmbodimentEnv(MujocoEnv):
 
         torso_z_height = self.data.qpos[2]
         terminated = torso_z_height < self.min_torso_height
-        print(torso_z_height, self.min_torso_height)
 
         if self.render_mode == "human":
             self.render()

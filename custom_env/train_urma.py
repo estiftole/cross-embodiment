@@ -1,4 +1,4 @@
-from algorithms.urma.urma import URMAActor, URMACritic
+from algorithms.urma import URMAActor, URMACritic
 from env import BipedEnv
 
 import torch

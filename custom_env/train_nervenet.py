@@ -1,4 +1,4 @@
-from algorithms.nervenet.nervenet import prepare_inputs, NerveNetActor, NerveNetCritic
+from algorithms.nervenet import prepare_inputs, NerveNetActor, NerveNetCritic
 from env import BipedEnv
 
 import torch
@@ -17,7 +17,7 @@ if __name__ == "__main__":
 
     base_obs_dim = obs["base_obs"].shape[-1]
     target_obs_dim = obs["target_obs"].shape[-1]
-    j_obs_dim = obs["joint_obs"].shape[-1]
+    j_obs_dim = obs["j_obs"].shape[-1]
 
     actor = NerveNetActor(
         j_obs_dim=j_obs_dim,
