@@ -57,6 +57,7 @@ class CrossEmbodimentEnv(MujocoEnv):
 
         self.setup_camera()
         self._init_embodiment_metadata()
+        self.graph_topology = self._extract_graph_topology()
 
     def setup_camera(self):
         self.render()
@@ -246,6 +247,7 @@ class CrossEmbodimentEnv(MujocoEnv):
         self.set_state(qpos, qvel)
 
         self._sample_target()
+        self.graph_topology = self._extract_graph_topology()
 
         return self._get_obs()
 
