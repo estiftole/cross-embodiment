@@ -4,7 +4,7 @@ import torch
 
 
 if __name__ == "__main__":
-    env = BipedEnv()
+    env = BipedEnv(render_mode="human")
     obs, info = env.reset()
 
     epochs = 10

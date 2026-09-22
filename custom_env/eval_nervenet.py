@@ -74,18 +74,18 @@ def evaluate(args):
     out_dir.mkdir(parents=True, exist_ok=True)
 
     df_episodes = pd.DataFrame(episode_stats)
-    df_episodes.to_csv(out_dir / "episode_summaries.csv", index=False)
+    df_episodes.to_csv(out_dir / "nervenet_episode_summaries.csv", index=False)
 
     if args.save_trajectories:
         df_traj = pd.DataFrame(trajectory_data)
-        df_traj.to_csv(out_dir / "trajectory_details.csv", index=False)
+        df_traj.to_csv(out_dir / "nervenet_trajectory_details.csv", index=False)
 
     print(f"\nEvaluation complete. Data saved to {out_dir}/")
     print(f"Average Return: {df_episodes['return'].mean():.2f} ± {df_episodes['return'].std():.2f}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Evaluate NerveNet Actor and collect data")
-    parser.add_argument("--checkpoint", type=str, default="nervenet_checkpoint.pth", help="Path to model weights")
+    parser.add_argument("--checkpoint", type=str, default="checkpoints/nervenet_checkpoint.pth", help="Path to model weights")
     parser.add_argument("--episodes", type=int, default=50, help="Number of episodes to evaluate")
     parser.add_argument("--max-steps", type=int, default=500, help="Maximum steps per episode")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
