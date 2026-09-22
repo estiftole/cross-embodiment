@@ -4,14 +4,14 @@ import torch
 
 
 if __name__ == "__main__":
-    env = BipedEnv(render_mode="human")
+    env = BipedEnv()
     obs, info = env.reset()
 
     epochs = 10
+    num_episodes = 1
+    rollout_len = 100
     gamma = 0.99
     lr = 3e-4
-    num_episodes = 10
-    rollout_len = 100
 
     j_obs_dim = obs["j_obs"].shape[-1]
     j_desc_dim = obs["j_desc"].shape[-1]
@@ -141,9 +141,5 @@ if __name__ == "__main__":
             "mu_hidden_dim": 64,
         }
     }
-    torch.save(checkpoint, "urma_checkpoint.pth")
-
-# checkpoint = torch.load("urma_checkpoint.pth")
-# actor = URMAActor(**checkpoint["config"])
-# actor.load_state_dict(checkpoint["actor_state_dict"])
-# actor.eval()
+    save_path = "checkpoints/urma_checkpoint.pth"
+    torch.save(checkpoint, save_path)
