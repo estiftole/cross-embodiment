@@ -13,7 +13,7 @@ if __name__ == "__main__":
     env = BipedEnv()
     obs, info = env.reset()
 
-    epochs = 5
+    epochs = 2
     num_episodes = 10
     rollout_len = 100
     gamma = 0.99
@@ -148,21 +148,6 @@ if __name__ == "__main__":
                 optimizer.step()
 
     env.close()
-
-    plt.figure(figsize=(8, 5))
-    plt.plot(history["timesteps"], history["reward"], label="NerveNet (Biped)", color="tab:blue", linewidth=2)
-    plt.xlabel("Total Timesteps")
-    plt.ylabel("Episodic Return")
-    plt.title("NerveNet Co-Training Reward Curve")
-    plt.grid(True, linestyle="--", alpha=0.6)
-    plt.legend()
-    plt.tight_layout()
-
-    plot_path = "logs/nervenet_reward_curve.png"
-    plt.savefig(plot_path, dpi=300)
-    plt.close()
-    print(f"Saved training plot to {plot_path}")
-
 
     checkpoint = {
         "actor_state_dict": actor.state_dict(),
