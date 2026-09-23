@@ -75,7 +75,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
     parser.add_argument("--device", type=str, default="cpu", help="Device to run inference on (cpu/cuda)")
     parser.add_argument("--render", action="store_true", help="Enable environment rendering")
-    parser.add_argument("--output-dir", type=str, default="./videos", help="Directory to save videos")
+    parser.add_argument("--output-dir", type=str, default="./videos/urma", help="Directory to save videos")
 
     args = parser.parse_args()
     evaluate(args)
