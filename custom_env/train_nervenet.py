@@ -173,7 +173,7 @@ if __name__ == "__main__":
     parser.add_argument("--max-steps", type=int, default=500, help="Maximum steps per episode")
     parser.add_argument("--epochs", type=int, default=2, help="Number of epochs to train for")
 
-    parser.add_argument("--gamma", type=int, default=0.99, help="Discount factor")
-    parser.add_argument("--lr", type=int, default=3e-4, help="Learning rate")
+    parser.add_argument("--gamma", type=float, default=0.99, help="Discount factor")
+    parser.add_argument("--lr", type=float, default=3e-4, help="Learning rate")
     args = parser.parse_args()
     train(args)
