@@ -24,7 +24,7 @@ def evaluate(args):
         env = RecordVideo(
             env,
             video_folder=out_dir,
-            name_prefix="urma",
+            # name_prefix="urma",
             episode_trigger=lambda episode_id: True,
         )
 
@@ -38,7 +38,7 @@ def evaluate(args):
 
 
     for episode in range(args.episodes):
-        print(episode)
+        print(f"Episode {episode}")
         obs, _ = env.reset(seed=args.seed + episode)
         done = False
         step = 0

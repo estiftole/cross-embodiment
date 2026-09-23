@@ -24,7 +24,7 @@ def evaluate(args):
         env = RecordVideo(
             env,
             video_folder=out_dir,
-            name_prefix="nervenet",
+            # name_prefix="nervenet",
             episode_trigger=lambda episode_id: True,
         )
 
@@ -37,6 +37,7 @@ def evaluate(args):
     print(f"Loaded actor from {args.checkpoint} onto {args.device}")
 
     for episode in range(args.episodes):
+        print(f"Episode {episode}")
         obs, _ = env.reset(seed=args.seed + episode)
         done = False
         step = 0

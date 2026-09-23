@@ -1,6 +1,6 @@
 # Co-Training Reward Curves (Split by Topology)
 # > X-axis: Training Timesteps (Environment Frames)
-# > Y-axis: Mean Episodic Return (with shaded 95% confidence intervals across seeds)
+# > Y-axis: Mean Episodic Return
 
 import csv
 import os
@@ -40,12 +40,12 @@ if __name__ == "__main__":
     plt.figure(figsize=(9, 5.5))
 
     if urma_ts:
-        plt.plot(urma_ts, urma_rewards, color="tab:blue", alpha=0.25, linewidth=1)
-        plt.plot(urma_ts, smooth_curve(urma_rewards), label="URMA", color="tab:blue", linewidth=2.5)
+        plt.plot(urma_ts, smooth_curve(urma_rewards), color="tab:blue", alpha=0.25, linewidth=1)
+        plt.plot(urma_ts, urma_rewards, label="URMA", color="tab:blue", linewidth=2.5)
 
     if nervenet_ts:
-        plt.plot(nervenet_ts, nervenet_rewards, color="tab:green", alpha=0.25, linewidth=1)
-        plt.plot(nervenet_ts, smooth_curve(nervenet_rewards), label="NerveNet", color="tab:green", linewidth=2.5)
+        plt.plot(nervenet_ts, smooth_curve(nervenet_rewards), color="tab:green", alpha=0.25, linewidth=1)
+        plt.plot(nervenet_ts, nervenet_rewards, label="NerveNet", color="tab:green", linewidth=2.5)
 
     plt.xlabel("Total Timesteps", fontsize=11, fontweight="bold")
     plt.ylabel("Episodic Return", fontsize=11, fontweight="bold")
@@ -54,7 +54,6 @@ if __name__ == "__main__":
     plt.legend(fontsize=11, frameon=True, facecolor="white", framealpha=0.9, loc="upper left")
     plt.tight_layout()
 
-    os.makedirs("logs", exist_ok=True)
     save_path = "logs/urma_vs_nervenet_co_training.png"
     plt.savefig(save_path, dpi=300)
     plt.close()
