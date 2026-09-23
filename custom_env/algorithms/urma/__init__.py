@@ -36,7 +36,7 @@ class URMAActor(nn.Module):
         self.core_net = CoreNetwork(j_latent_dim, ee_latent_dim, base_obs_dim, target_obs_dim, hidden_dim, action_latent_dim)
         self.action_dec = ActionDecoder(j_desc_dim, dec_hidden_dim, dec_out_dim, action_latent_dim, j_latent_dim, mu_hidden_dim, action_dim)
 
-    def forward(self, target_obs, base_obs, j_obs, j_desc, ee_obs, ee_desc):
+    def forward(self, target_obs, base_obs, j_obs, j_desc, ee_obs, ee_desc, action=None):
         j_prod = self.j_composite_enc(j_obs, j_desc)
         j_latent = self.j_attn_module(j_prod)
 
@@ -45,9 +45,9 @@ class URMAActor(nn.Module):
 
         action_latent = self.core_net(j_latent, ee_latent, target_obs, base_obs)
 
-        action = self.action_dec(j_desc, action_latent, j_prod)
+        act, log_prob = self.action_dec(j_desc, action_latent, j_prod, action)
 
-        return action
+        return act, log_prob
 
 
 class URMACritic(nn.Module):

@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.distributions import Normal
 
 class DecoderMLP(nn.Module):
     def __init__(self, j_desc_dim, hidden_dim, out_dim):
@@ -61,15 +62,20 @@ class ActionDecoder(nn.Module):
         self.mu_mlp = MuMLP(decoder_out_dim, action_latent_dim, j_prod_dim, mu_hidden_dim, action_dim)
         self.sigma_layer = SigmaLayer(decoder_out_dim, action_dim)
 
-    def forward(self, j_desc, action_latent, j_prod, deterministic=False):
+    def forward(self, j_desc, action_latent, j_prod, action=None, deterministic=False):
         dec_out = self.decoder(j_desc)
         mu = self.mu_mlp(dec_out, action_latent, j_prod)
         sigma = self.sigma_layer(dec_out)
 
-        if deterministic:
-            action = mu
-        else:
-            epsilon = torch.randn_like(sigma)
-            action = mu + epsilon * sigma
+        dist = Normal(mu, sigma)
 
-        return action
+        if deterministic:
+            act = mu
+        elif action is None:
+            act = dist.rsample()
+        else:
+            act = action
+
+        log_prob = dist.log_prob(act).sum(dim=-1)
+
+        return act, log_prob

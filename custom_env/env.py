@@ -8,7 +8,7 @@ import torch
 class CrossEmbodimentEnv(MujocoEnv):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 100}
     DEFAULT_CAMERA_CONFIG = {
-        "distance": 10,
+        "distance": 5,
         "elevation": -35.26,
         "azimuth": 225.0,
         "lookat": [0.0, 0.0, 1.0],
