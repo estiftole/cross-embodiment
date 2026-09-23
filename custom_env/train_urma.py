@@ -66,8 +66,9 @@ def train(args):
 
     history = {"episode": [], "timesteps": [], "reward": []}
     print("Initiated actor and critic")
+    print(args.episodes)
     for episode in range(args.episodes):
-        print(f"Episode: {episode}")
+        # print(f"Episode: {episode}")
         states, actions, rewards, values, dones, log_probs = [], [], [], [], [], []
         ep_reward = 0.0
 
@@ -179,13 +180,13 @@ if __name__ == "__main__":
     parser.add_argument("--save-path", type=str, default="checkpoints/urma_checkpoint.pth", help="Path to model weights")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
 
-    parser.add_argument("--episodes", default=10, help="Number of episodes to train for")
-    parser.add_argument("--rollout-len", default=100, help="Length of single rollout")
+    parser.add_argument("--episodes", type=int, default=10, help="Number of episodes to train for")
+    parser.add_argument("--rollout-len", type=int, default=100, help="Length of single rollout")
     parser.add_argument("--max-steps", type=int, default=500, help="Maximum steps per episode")
     parser.add_argument("--epochs", type=int, default=2, help="Number of epochs to train for")
 
-    parser.add_argument("--gamma", default=0.99, help="Discount factor")
-    parser.add_argument("--lr", default=3e-4, help="Learning rate")
+    parser.add_argument("--gamma", type=int, default=0.99, help="Discount factor")
+    parser.add_argument("--lr", type=int, default=3e-4, help="Learning rate")
 
     args = parser.parse_args()
     train(args)
