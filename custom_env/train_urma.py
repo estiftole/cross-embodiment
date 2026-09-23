@@ -127,7 +127,6 @@ def train(args):
         batch_actions = torch.cat(actions, dim=0)
 
         for epoch in range(args.epochs):
-            print(epoch)
             v = critic(**batch_inp).squeeze()
             value_loss = 0.5 * (v - returns).pow(2).mean()
 
