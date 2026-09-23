@@ -117,28 +117,30 @@ def train(args):
             returns.insert(0, R)
 
         returns = torch.tensor(returns, dtype=torch.float32)
-        values_tensor = torch.tensor(values, dtype=torch.float32)
-        advantages = returns - values_tensor
+        advantages = returns - torch.stack(values).squeeze()
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
-        for _ in range(args.epochs):
-            for i in range(args.rollout_len):
-                inp = states[i]
-                ret = returns[i]
-                old_action = actions[i]
-                adv = advantages[i]
+        batch_inp = {
+            k: torch.cat([s[k] for s in states], dim=0)
+            for k in states[0].keys()
+        }
+        batch_actions = torch.cat(actions, dim=0)
 
-                v = critic(**inp).squeeze()
-                value_loss = 0.5 * (v - ret).pow(2)
+        for epoch in range(args.epochs):
+            print(epoch)
+            v = critic(**batch_inp).squeeze()
+            value_loss = 0.5 * (v - returns).pow(2).mean()
 
-                _, new_log_prob = actor(**inp, action=old_action)
-                actor_loss = -(new_log_prob * adv)
+            _, log_prob = actor(**batch_inp, action=batch_actions)
+            if log_prob.dim() > 1:
+                log_prob = log_prob.sum(dim=-1)
+            actor_loss = -(log_prob * advantages).mean()
 
-                total_loss = (value_loss + actor_loss).mean()
+            total_loss = value_loss + actor_loss
 
-                optimizer.zero_grad()
-                total_loss.backward()
-                optimizer.step()
+            optimizer.zero_grad()
+            total_loss.backward()
+            optimizer.step()
 
     env.close()
 

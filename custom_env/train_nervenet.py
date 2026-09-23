@@ -103,40 +103,49 @@ def train(args):
             R = r + args.gamma * R * (1 - float(d))
             returns.insert(0, R)
 
-        returns = torch.tensor(returns)
-        advantages = returns - torch.tensor(values)
-        advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
+        returns = torch.tensor(returns, dtype=torch.float32)
+        advantages = returns - torch.stack(values)
+        advantages = (advantages - advantages.mean()) / (
+            advantages.std() + 1e-8
+        )
+
+        obs_keys = {"target_obs", "base_obs", "j_obs"}
+        batch_inp = {
+            k: (
+                torch.cat([s[k] for s in states], dim=0)
+                if k in obs_keys
+                else states[0][k]
+            )
+            for k in states[0].keys()
+        }
+        batch_actions = torch.cat(actions, dim=0)
+        old_log_probs = torch.stack(log_probs)
 
         for _ in range(args.epochs):
-            for i in range(args.rollout_len):
-                inp = states[i]
-                act = actions[i]
-                old_lp = log_probs[i]
-                adv = advantages[i]
-                ret = returns[i]
+            _, new_lp, entropy = actor.get_action_and_log_prob(
+                **batch_inp, action=batch_actions
+            )
+            v = critic(
+                batch_inp["target_obs"],
+                batch_inp["base_obs"],
+                batch_inp["j_obs"],
+                batch_inp["senders"],
+                batch_inp["receivers"],
+            ).squeeze()
 
-                _, new_lp, entropy = actor.get_action_and_log_prob(**inp, action=act)
-                v = critic(
-                    inp["target_obs"],
-                    inp["base_obs"],
-                    inp["j_obs"],
-                    inp["senders"],
-                    inp["receivers"]
-                ).squeeze()
+            ratio = torch.exp(new_lp - old_log_probs)
+            surr1 = ratio * advantages
+            surr2 = torch.clamp(ratio, 0.8, 1.2) * advantages
 
-                ratio = torch.exp(new_lp - old_lp)
-                surr1 = ratio * adv
-                surr2 = torch.clamp(ratio, 0.8, 1.2) * adv
+            policy_loss = -torch.min(surr1, surr2).mean()
+            value_loss = 0.5 * (v - returns).pow(2).mean()
+            entropy_loss = -0.01 * entropy.mean()
 
-                policy_loss = -torch.min(surr1, surr2)
-                value_loss = 0.5 * (v - ret).pow(2)
-                entropy_loss = -0.01 * entropy
+            loss = policy_loss + value_loss + entropy_loss
 
-                loss = policy_loss + value_loss + entropy_loss
-
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
     env.close()
 
