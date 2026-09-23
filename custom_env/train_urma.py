@@ -1,24 +1,18 @@
+import argparse
 from algorithms.urma import URMAActor, URMACritic
 from env import BipedEnv
 import torch
 import csv
 import os
 
-import matplotlib.pyplot as plt
 
-if __name__ == "__main__":
+def train(args):
     os.makedirs("checkpoints", exist_ok=True)
     os.makedirs("logs", exist_ok=True)
 
     # env = BipedEnv(render_mode="human")
     env = BipedEnv()
     obs, info = env.reset()
-
-    epochs = 2
-    num_episodes = 10
-    rollout_len = 100
-    gamma = 0.99
-    lr = 3e-4
 
     j_obs_dim = obs["j_obs"].shape[-1]
     j_desc_dim = obs["j_desc"].shape[-1]
@@ -62,7 +56,7 @@ if __name__ == "__main__":
         hidden_dim=128
     )
 
-    optimizer = torch.optim.Adam(list(actor.parameters()) + list(critic.parameters()), lr=lr)
+    optimizer = torch.optim.Adam(list(actor.parameters()) + list(critic.parameters()), lr=args.lr)
 
     total_timesteps = 0
     log_file_path = "logs/urma_train_log.csv"
@@ -72,12 +66,12 @@ if __name__ == "__main__":
 
     history = {"episode": [], "timesteps": [], "reward": []}
     print("Initiated actor and critic")
-    for episode in range(num_episodes):
+    for episode in range(args.episodes):
         print(f"Episode: {episode}")
         states, actions, rewards, values, dones, log_probs = [], [], [], [], [], []
         ep_reward = 0.0
 
-        for _ in range(rollout_len):
+        for _ in range(args.rollout_len):
             total_timesteps += 1
             inp = {
                 "target_obs": torch.as_tensor(obs["target_obs"], dtype=torch.float32).unsqueeze(0),
@@ -116,13 +110,13 @@ if __name__ == "__main__":
 
         with open(log_file_path, mode="a", newline="") as f:
             writer = csv.writer(f)
-            writer.writerow([episode, total_timesteps, ep_reward, ep_reward / rollout_len])
+            writer.writerow([episode, total_timesteps, ep_reward, ep_reward / args.rollout_len])
 
         print(f"Episode: {episode} | Timesteps: {total_timesteps} | Reward: {ep_reward:.2f}")
 
         returns, R = [], 0
         for r, d in zip(reversed(rewards), reversed(dones)):
-            R = r + gamma * R * (1 - float(d))
+            R = r + args.gamma * R * (1 - float(d))
             returns.insert(0, R)
 
         returns = torch.tensor(returns, dtype=torch.float32)
@@ -130,9 +124,9 @@ if __name__ == "__main__":
         advantages = returns - values_tensor
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
-        for epoch in range(epochs):
-            print(f"Epoch: {epoch}")
-            for i in range(rollout_len):
+        for epoch in range(args.epochs):
+            # print(f"Epoch: {epoch}")
+            for i in range(args.rollout_len):
                 inp = states[i]
                 ret = returns[i]
                 old_action = actions[i]
@@ -178,5 +172,20 @@ if __name__ == "__main__":
             "mu_hidden_dim": 64,
         }
     }
-    save_path = "checkpoints/urma_checkpoint.pth"
-    torch.save(checkpoint, save_path)
+    torch.save(checkpoint, args.save_path)
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Train URMA policy")
+    parser.add_argument("--save-path", type=str, default="checkpoints/urma_checkpoint.pth", help="Path to model weights")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
+
+    parser.add_argument("--episodes", default=10, help="Number of episodes to train for")
+    parser.add_argument("--rollout-len", default=100, help="Length of single rollout")
+    parser.add_argument("--max-steps", type=int, default=500, help="Maximum steps per episode")
+    parser.add_argument("--epochs", type=int, default=2, help="Number of epochs to train for")
+
+    parser.add_argument("--gamma", default=0.99, help="Discount factor")
+    parser.add_argument("--lr", default=3e-4, help="Learning rate")
+
+    args = parser.parse_args()
+    train(args)

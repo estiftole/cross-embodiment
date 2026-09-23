@@ -166,10 +166,10 @@ class CrossEmbodimentEnv(MujocoEnv):
         else:
             direction_to_target = np.zeros(2)
 
-        progress_reward = np.dot(torso_vel_xy, direction_to_target)
-
+        direction_reward = np.dot(torso_vel_xy, direction_to_target)
         ctrl_cost = 0.001 * np.sum(np.square(action))
-        reward = progress_reward - ctrl_cost
+
+        reward = direction_reward - ctrl_cost
 
         if distance_to_target < self.target_reach_threshold:
             reward += 10.0
