@@ -1,6 +1,5 @@
 from env import BipedEnv, QuadpedEnv
 import numpy as np
-from pathlib import Path
 
 if __name__ == "__main__":
     # robot_xml_path="custom_models/biped.xml"

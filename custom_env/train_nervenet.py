@@ -10,7 +10,7 @@ def train(args):
     os.makedirs("logs", exist_ok=True)
 
     env = BipedEnv()
-    obs, info = env.reset()
+    obs, _ = env.reset()
 
     j_obs_dim = obs["j_obs"].shape[-1]
     base_obs_dim = obs["base_obs"].shape[-1]
@@ -56,7 +56,6 @@ def train(args):
     history = {"episode": [], "timesteps": [], "reward": []}
     print("Initiated actor and critic")
     for episode in range(args.episodes):
-        # print(f"Episode: {episode}")
         states, actions, rewards, values, dones, log_probs = [], [], [], [], [], []
         ep_reward = 0.0
 
@@ -74,7 +73,7 @@ def train(args):
                     inp["receivers"]
                 ).squeeze()
 
-            next_obs, r, term, trunc, info = env.step(act.reshape(-1).cpu().numpy())
+            next_obs, r, term, trunc, _ = env.step(act.reshape(-1).cpu().numpy())
             done = term or trunc
 
             states.append(inp)
@@ -87,7 +86,7 @@ def train(args):
             ep_reward += float(r.item() if hasattr(r, "item") else r)
             obs = next_obs
             if done:
-                obs, info = env.reset()
+                obs, _ = env.reset()
         # Log metrics for this episode
         history["episode"].append(episode)
         history["timesteps"].append(total_timesteps)
@@ -108,8 +107,7 @@ def train(args):
         advantages = returns - torch.tensor(values)
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-8)
 
-        for epoch in range(args.epochs):
-            # print(f"Epoch: {epoch}")
+        for _ in range(args.epochs):
             for i in range(args.rollout_len):
                 inp = states[i]
                 act = actions[i]

@@ -24,7 +24,6 @@ def evaluate(args):
         env = RecordVideo(
             env,
             video_folder=out_dir,
-            # name_prefix="nervenet",
             episode_trigger=lambda episode_id: True,
         )
 
@@ -51,7 +50,7 @@ def evaluate(args):
 
             action_np = act.reshape(-1).cpu().numpy()
 
-            next_obs, reward, term, trunc, _ = env.step(action_np)
+            next_obs, r, term, trunc, _ = env.step(action_np)
             done = term or trunc
 
             step += 1
