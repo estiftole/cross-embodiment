@@ -53,92 +53,99 @@ def train(args):
         writer = csv.writer(f)
         writer.writerow(["episode", "total_timesteps", "episodic_reward", "mean_step_reward"])
 
-    history = {"episode": [], "timesteps": [], "reward": []}
     print("Initiated actor and critic")
-    for episode in range(args.episodes):
-        states, actions, rewards, values, dones, log_probs = [], [], [], [], [], []
-        ep_reward = 0.0
+    total_timesteps = 0
+    for update_step in range(args.total_updates):
+        all_states = []
+        all_actions = []
+        all_log_probs = []
+        all_returns = []
+        all_advantages = []
 
-        for _ in range(args.rollout_len):
-            total_timesteps += 1
+        for ep_idx in range(args.episodes_per_update):
+            obs, _ = env.reset()
+            ep_states, ep_actions, ep_rewards, ep_values, ep_dones, ep_log_probs = [], [], [], [], [], []
+            ep_reward = 0.0
 
-            inp = prepare_inputs(obs, env.graph_topology)
-            with torch.no_grad():
-                act, log_p, _ = actor.get_action_and_log_prob(**inp)
-                val = critic(
-                    inp["target_obs"],
-                    inp["base_obs"],
-                    inp["j_obs"],
-                    inp["senders"],
-                    inp["receivers"]
-                ).squeeze()
+            for _ in range(args.rollout_len):
+                total_timesteps += 1
+                inp = prepare_inputs(obs, env.graph_topology)
 
-            next_obs, r, term, trunc, _ = env.step(act.reshape(-1).cpu().numpy())
-            done = term or trunc
+                with torch.no_grad():
+                    act, log_p, _ = actor.get_action_and_log_prob(**inp)
+                    val = critic(
+                        inp["target_obs"], inp["base_obs"], inp["j_obs"],
+                        inp["senders"], inp["receivers"]
+                    ).squeeze()
 
-            states.append(inp)
-            actions.append(act)
-            log_probs.append(log_p)
-            rewards.append(r)
-            values.append(val.squeeze())
-            dones.append(done)
+                next_obs, r, term, trunc, _ = env.step(act.reshape(-1).cpu().numpy())
+                done = term or trunc
 
-            ep_reward += float(r.item() if hasattr(r, "item") else r)
-            obs = next_obs
-            if done:
-                obs, _ = env.reset()
-        # Log metrics for this episode
-        history["episode"].append(episode)
-        history["timesteps"].append(total_timesteps)
-        history["reward"].append(ep_reward)
+                ep_states.append(inp)
+                ep_actions.append(act)
+                ep_log_probs.append(log_p.squeeze())
+                ep_rewards.append(r)
+                ep_values.append(val.squeeze())
+                ep_dones.append(done)
 
-        with open(log_file_path, mode="a", newline="") as f:
-            writer = csv.writer(f)
-            writer.writerow([episode, total_timesteps, ep_reward, ep_reward / args.rollout_len])
+                ep_reward += float(r.item() if hasattr(r, "item") else r)
+                obs = next_obs
+                if done:
+                    break
 
-        print(f"Episode: {episode} | Timesteps: {total_timesteps} | Reward: {ep_reward:.2f}")
+            current_ep_num = update_step * args.episodes_per_update + ep_idx
 
-        returns, R = [], 0
-        for r, d in zip(reversed(rewards), reversed(dones)):
-            R = r + args.gamma * R * (1 - float(d))
-            returns.insert(0, R)
+            with open(log_file_path, mode="a", newline="") as f:
+                writer = csv.writer(f)
+                writer.writerow([current_ep_num, total_timesteps, ep_reward, ep_reward / len(ep_rewards)])
 
-        returns = torch.tensor(returns, dtype=torch.float32)
-        advantages = returns - torch.stack(values)
-        advantages = (advantages - advantages.mean()) / (
-            advantages.std() + 1e-8
-        )
+            print(f"Update: {update_step} | Ep: {current_ep_num} | Timesteps: {total_timesteps} | Reward: {ep_reward:.2f}")
+
+            returns, R = [], 0
+            for r, d in zip(reversed(ep_rewards), reversed(ep_dones)):
+                R = r + args.gamma * R * (1 - float(d))
+                returns.insert(0, R)
+
+            ep_returns = torch.tensor(returns, dtype=torch.float32)
+            ep_values_tensor = torch.stack(ep_values)
+            ep_advantages = ep_returns - ep_values_tensor
+
+            # append to global update buffer
+            all_states.extend(ep_states)
+            all_actions.extend(ep_actions)
+            all_log_probs.extend(ep_log_probs)
+            all_returns.append(ep_returns)
+            all_advantages.append(ep_advantages)
+
+        flat_returns = torch.cat(all_returns, dim=0)
+        flat_advantages = torch.cat(all_advantages, dim=0)
+        flat_advantages = (flat_advantages - flat_advantages.mean()) / (flat_advantages.std() + 1e-8)
 
         obs_keys = {"target_obs", "base_obs", "j_obs"}
         batch_inp = {
             k: (
-                torch.cat([s[k] for s in states], dim=0)
+                torch.cat([s[k] for s in all_states], dim=0)
                 if k in obs_keys
-                else states[0][k]
+                else all_states[0][k]
             )
-            for k in states[0].keys()
+            for k in all_states[0].keys()
         }
-        batch_actions = torch.cat(actions, dim=0)
-        old_log_probs = torch.stack(log_probs)
+        batch_actions = torch.cat(all_actions, dim=0)
+        old_log_probs = torch.stack(all_log_probs)
 
         for _ in range(args.epochs):
-            _, new_lp, entropy = actor.get_action_and_log_prob(
-                **batch_inp, action=batch_actions
-            )
+            _, new_lp, entropy = actor.get_action_and_log_prob(**batch_inp, action=batch_actions)
             v = critic(
-                batch_inp["target_obs"],
-                batch_inp["base_obs"],
-                batch_inp["j_obs"],
-                batch_inp["senders"],
-                batch_inp["receivers"],
+                batch_inp["target_obs"], batch_inp["base_obs"], batch_inp["j_obs"],
+                batch_inp["senders"], batch_inp["receivers"]
             ).squeeze()
 
             ratio = torch.exp(new_lp - old_log_probs)
-            surr1 = ratio * advantages
-            surr2 = torch.clamp(ratio, 0.8, 1.2) * advantages
+            surr1 = ratio * flat_advantages
+            surr2 = torch.clamp(ratio, 0.8, 1.2) * flat_advantages
 
             policy_loss = -torch.min(surr1, surr2).mean()
-            value_loss = 0.5 * (v - returns).pow(2).mean()
+            value_loss = 0.5 * (v - flat_returns).pow(2).mean()
             entropy_loss = -0.01 * entropy.mean()
 
             loss = policy_loss + value_loss + entropy_loss
@@ -177,7 +184,8 @@ if __name__ == "__main__":
     parser.add_argument("--save-path", type=str, default="checkpoints/nervenet_checkpoint.pth", help="Path to model weights")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
 
-    parser.add_argument("--episodes", type=int, default=10, help="Number of episodes to train for")
+    parser.add_argument("--total-updates", type=int, default=10, help="Number of updates")
+    parser.add_argument("--episodes-per-update", type=int, default=5, help="Number of episodes per update")
     parser.add_argument("--rollout-len", type=int, default=100, help="Length of single rollout")
     parser.add_argument("--max-steps", type=int, default=500, help="Maximum steps per episode")
     parser.add_argument("--epochs", type=int, default=2, help="Number of epochs to train for")
