@@ -55,7 +55,8 @@ class CrossEmbodimentEnv(MujocoEnv):
             "target"
         )
 
-        self.setup_camera()
+        if self.render_mode:
+            self.setup_camera()
         self._init_embodiment_metadata()
         self.graph_topology = self._extract_graph_topology()
 
@@ -260,12 +261,17 @@ class BipedEnv(CrossEmbodimentEnv):
     def __init__(
         self,
         robot_xml_path="custom_models/biped.xml",
-        render_mode="rgb_array"
+        render_mode=None
     ):
-        super().__init__(
-            robot_xml_path=robot_xml_path,
-            render_mode=render_mode
-        )
+        if render_mode:
+            super().__init__(
+                robot_xml_path=robot_xml_path,
+                render_mode=render_mode
+            )
+        else:
+            super().__init__(
+                robot_xml_path=robot_xml_path
+            )
         self._cache_nominal_geometry()
 
     def _cache_nominal_geometry(self):
@@ -400,12 +406,18 @@ class QuadpedEnv(CrossEmbodimentEnv):
     def __init__(
         self,
         robot_xml_path="custom_models/quadped.xml",
-        render_mode="rgb_array"
+        render_mode=None
     ):
-        super().__init__(
-            robot_xml_path=robot_xml_path,
-            render_mode=render_mode
-        )
+        if render_mode:
+            super().__init__(
+                robot_xml_path=robot_xml_path,
+                render_mode=render_mode
+            )
+        else:
+            super().__init__(
+                robot_xml_path=robot_xml_path
+            )
+        self._cache_nominal_geometry()
 
     def set_torso_dimensions(
             self,

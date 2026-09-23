@@ -9,7 +9,6 @@ def train(args):
     os.makedirs("checkpoints", exist_ok=True)
     os.makedirs("logs", exist_ok=True)
 
-    # env = BipedEnv(render_mode="human")
     env = BipedEnv()
     obs, info = env.reset()
 
