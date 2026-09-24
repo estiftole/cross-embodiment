@@ -158,8 +158,8 @@ class EnvTemplate(MujocoEnv):
     def step(self, action):
         self.do_simulation(action, self.frame_skip)
 
-        torso_xy = self.data.qpos[:2].copy()
-        torso_vel_xy = self.data.qvel[:2].copy()
+        torso_xy = self.data.qpos[:2]
+        torso_vel_xy = self.data.qvel[:2]
 
         vector_to_target = self.target_pos - torso_xy
         distance_to_target = np.linalg.norm(vector_to_target)
@@ -171,12 +171,13 @@ class EnvTemplate(MujocoEnv):
 
         direction_reward = np.dot(torso_vel_xy, direction_to_target)
         ctrl_cost = 0.001 * np.sum(np.square(action))
+        healthy_reward = 0.5
 
-        reward = direction_reward - distance_to_target - ctrl_cost
+        reward = direction_reward + healthy_reward - ctrl_cost
 
         if distance_to_target < self.target_reach_threshold:
             reward += 10.0
-            self.reset_model()
+            self._sample_target()  # Relocate target without resetting robot state
 
         torso_z_height = self.data.qpos[2]
         terminated = torso_z_height < self.min_torso_height
