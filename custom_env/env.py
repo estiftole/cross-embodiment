@@ -176,7 +176,7 @@ class EnvTemplate(MujocoEnv):
 
         if distance_to_target < self.target_reach_threshold:
             reward += 10.0
-            self._sample_target()  # Relocate target without resetting robot state
+            self._sample_target()
 
         torso_z_height = self.data.qpos[2]
         terminated = torso_z_height < self.min_torso_height
