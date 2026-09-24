@@ -42,7 +42,7 @@ def evaluate(args):
         step = 0
 
         while not done and step < args.max_steps:
-            inp = prepare_inputs(obs, env.unwrapped.graph_topology)
+            inp = prepare_inputs(obs, env.unwrapped.graph_topology, torch.device(args.device))
             inp = {k: v.to(args.device) if isinstance(v, torch.Tensor) else v for k, v in inp.items()}
 
             with torch.no_grad():
