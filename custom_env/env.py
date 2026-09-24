@@ -5,6 +5,8 @@ from gymnasium.envs.mujoco import MujocoEnv
 import numpy as np
 import torch
 
+import gymnasium as gym
+
 class EnvTemplate(MujocoEnv):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 100}
     DEFAULT_CAMERA_CONFIG = {
@@ -417,7 +419,6 @@ class QuadpedEnv(EnvTemplate):
             super().__init__(
                 robot_xml_path=robot_xml_path
             )
-        self._cache_nominal_geometry()
 
     def set_torso_dimensions(
             self,
@@ -505,31 +506,45 @@ class QuadpedEnv(EnvTemplate):
         mujoco.mj_setConst(self.model, self.data)
         mujoco.mj_forward(self.model, self.data)
 
-class CrossEmbodimentEnv:
-    def __init__(self, starting_env="biped"):
-        self.env = None
-        self.biped_env = BipedEnv
-        self.quadped_env = QuadpedEnv
+class CrossEmbodimentEnv(gym.Env):
+    def __init__(self, starting_embodiment="quadped", render_mode=None):
+        super().__init__()
+        self.render_mode = render_mode
+        self.registry = {
+            "biped": BipedEnv,
+            "quadped": QuadpedEnv,
+        }
 
-        self.current_embodiment = starting_env
-        self.switch_model()
+        self.current_embodiment = None
+        self.active_env = None
+        self.switch_embodiment(starting_embodiment)
 
-    def switch_model(self):
-        if self.current_embodiment == "biped":
-            self.env = self.quadped_env
-        elif self.current_embodiment == "quadped":
-            self.env = self.biped_env
+    def switch_embodiment(self, embodiment_name: str):
+        if embodiment_name not in self.registry:
+            raise ValueError(f"Unknown embodiment: {embodiment_name}")
+
+        if self.current_embodiment == embodiment_name and self.active_env is not None:
+            return
+
+        if self.active_env is not None:
+            self.active_env.close()
+
+        self.current_embodiment = embodiment_name
+        self.active_env = self.registry[embodiment_name](render_mode=self.render_mode)
+
+        self.action_space = self.active_env.action_space
 
     def step(self, action):
-        return self.env.step(action) if self.env else None
+        return self.active_env.step(action)
 
-    def reset(self):
-        if self.env:
-            return self.env.reset() if self.env else None
+    def reset(self, seed=None, options=None):
+        super().reset(seed=seed)
+        return self.active_env.reset(seed=seed, options=options)
+
+    def render(self):
+        return self.active_env.render()
 
     def close(self):
-        if self.env is None:
-            return None
-        self.env.close()
-        self.switch_model()
-        self.env.close()
+        if self.active_env is not None:
+            self.active_env.close()
+            self.active_env = None

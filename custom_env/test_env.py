@@ -1,10 +1,14 @@
-from env import BipedEnv, QuadpedEnv
+from env import CrossEmbodimentEnv
 import numpy as np
 
 if __name__ == "__main__":
-    render_mode = "rgb_array"
+    render_mode = "human"
     # env = QuadpedEnv(render_mode=render_mode)
-    env = BipedEnv(render_mode=render_mode)
+    starting_embodiment="quadped"
+    env = CrossEmbodimentEnv(
+        render_mode=render_mode,
+        starting_embodiment=starting_embodiment
+    )
 
     if render_mode=="rgb_array":
         from gymnasium.wrappers import RecordVideo
