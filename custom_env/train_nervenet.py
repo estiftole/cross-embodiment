@@ -16,6 +16,8 @@ def train(args):
     base_obs_dim = obs["base_obs"].shape[-1]
     target_obs_dim = obs["target_obs"].shape[-1]
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     actor = NerveNetActor(
         j_obs_dim=j_obs_dim,
         target_obs_dim=target_obs_dim,
@@ -29,7 +31,7 @@ def train(args):
         iterations=2,
         dec_hidden_dim=32,
         action_dim=1  # 1 scalar output per motor joint
-    )
+    ).to(device)
 
     critic = NerveNetCritic(
         j_obs_dim=j_obs_dim,
@@ -43,7 +45,7 @@ def train(args):
         msg_dim=16,
         iterations=2,
         dec_hidden_dim=32,
-    )
+    ).to(device)
 
 
     optimizer = torch.optim.Adam(list(actor.parameters()) + list(critic.parameters()), lr=args.lr)
@@ -69,7 +71,7 @@ def train(args):
 
             for _ in range(args.rollout_len):
                 total_timesteps += 1
-                inp = prepare_inputs(obs, env.graph_topology)
+                inp = prepare_inputs(obs, env.graph_topology, device)
 
                 with torch.no_grad():
                     act, log_p, _ = actor.get_action_and_log_prob(**inp)
@@ -107,7 +109,7 @@ def train(args):
                 R = r + args.gamma * R * (1 - float(d))
                 returns.insert(0, R)
 
-            ep_returns = torch.tensor(returns, dtype=torch.float32)
+            ep_returns = torch.tensor(returns, dtype=torch.float32).to(device)
             ep_values_tensor = torch.stack(ep_values)
             ep_advantages = ep_returns - ep_values_tensor
 
@@ -118,21 +120,21 @@ def train(args):
             all_returns.append(ep_returns)
             all_advantages.append(ep_advantages)
 
-        flat_returns = torch.cat(all_returns, dim=0)
-        flat_advantages = torch.cat(all_advantages, dim=0)
+        flat_returns = torch.cat(all_returns, dim=0).to(device)
+        flat_advantages = torch.cat(all_advantages, dim=0).to(device)
         flat_advantages = (flat_advantages - flat_advantages.mean()) / (flat_advantages.std() + 1e-8)
 
         obs_keys = {"target_obs", "base_obs", "j_obs"}
         batch_inp = {
             k: (
-                torch.cat([s[k] for s in all_states], dim=0)
+                torch.cat([s[k] for s in all_states], dim=0).to(device)
                 if k in obs_keys
                 else all_states[0][k]
             )
             for k in all_states[0].keys()
         }
-        batch_actions = torch.cat(all_actions, dim=0)
-        old_log_probs = torch.stack(all_log_probs)
+        batch_actions = torch.cat(all_actions, dim=0).to(device)
+        old_log_probs = torch.stack(all_log_probs).to(device)
 
         for _ in range(args.epochs):
             _, new_lp, entropy = actor.get_action_and_log_prob(**batch_inp, action=batch_actions)

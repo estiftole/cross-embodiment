@@ -6,18 +6,18 @@ import torch
 import torch.nn as nn
 from torch.distributions import Normal
 
-def prepare_inputs(obs, graph_meta, device="cpu"):
+def prepare_inputs(obs, graph_meta, device):
 
-    base_obs = torch.as_tensor(obs["base_obs"], dtype=torch.float32, device=device).unsqueeze(0)
-    target_obs = torch.as_tensor(obs["target_obs"], dtype=torch.float32, device=device).unsqueeze(0)
+    base_obs = torch.as_tensor(obs["base_obs"], dtype=torch.float32).unsqueeze(0).to(device)
+    target_obs = torch.as_tensor(obs["target_obs"], dtype=torch.float32).unsqueeze(0).to(device)
 
-    j_obs = torch.as_tensor(obs["j_obs"], dtype=torch.float32, device=device)
+    j_obs = torch.as_tensor(obs["j_obs"], dtype=torch.float32).to(device)
     if j_obs.ndim == 2:
         j_obs = j_obs.unsqueeze(0)
 
-    senders = torch.as_tensor(graph_meta["senders"], dtype=torch.long, device=device)
-    receivers = torch.as_tensor(graph_meta["receivers"], dtype=torch.long, device=device)
-    actuatable_nodes = torch.as_tensor(graph_meta["actuatable_nodes"], dtype=torch.long, device=device)
+    senders = torch.as_tensor(graph_meta["senders"], dtype=torch.long).to(device)
+    receivers = torch.as_tensor(graph_meta["receivers"], dtype=torch.long).to(device)
+    actuatable_nodes = torch.as_tensor(graph_meta["actuatable_nodes"], dtype=torch.long).to(device)
 
     return {
         "target_obs": target_obs,

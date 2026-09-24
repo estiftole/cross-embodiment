@@ -20,6 +20,8 @@ def train(args):
     base_obs_dim = obs["base_obs"].shape[-1]
     target_obs_dim = obs["target_obs"].shape[-1]
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     actor = URMAActor(
         j_obs_dim=j_obs_dim,
         j_desc_dim=j_desc_dim,
@@ -38,7 +40,7 @@ def train(args):
         dec_out_dim=64,
         mu_hidden_dim=64,
         action_dim=1
-    )
+    ).to(device)
 
     critic = URMACritic(
         j_obs_dim=j_obs_dim,
@@ -53,7 +55,7 @@ def train(args):
         embed_dim=64,
         attn_heads=4,
         hidden_dim=128
-    )
+    ).to(device)
 
     optimizer = torch.optim.Adam(list(actor.parameters()) + list(critic.parameters()), lr=args.lr)
 
@@ -79,12 +81,12 @@ def train(args):
             for _ in range(args.rollout_len):
                 total_timesteps += 1
                 inp = {
-                    "target_obs": torch.as_tensor(obs["target_obs"], dtype=torch.float32).unsqueeze(0),
-                    "base_obs": torch.as_tensor(obs["base_obs"], dtype=torch.float32).unsqueeze(0),
-                    "j_obs": torch.as_tensor(obs["j_obs"], dtype=torch.float32).unsqueeze(0),
-                    "j_desc": torch.as_tensor(obs["j_desc"], dtype=torch.float32).unsqueeze(0),
-                    "ee_obs": torch.as_tensor(obs["ee_obs"], dtype=torch.float32).unsqueeze(0),
-                    "ee_desc": torch.as_tensor(obs["ee_desc"], dtype=torch.float32).unsqueeze(0),
+                    "target_obs": torch.as_tensor(obs["target_obs"], dtype=torch.float32).unsqueeze(0).to(device),
+                    "base_obs": torch.as_tensor(obs["base_obs"], dtype=torch.float32).unsqueeze(0).to(device),
+                    "j_obs": torch.as_tensor(obs["j_obs"], dtype=torch.float32).unsqueeze(0).to(device),
+                    "j_desc": torch.as_tensor(obs["j_desc"], dtype=torch.float32).unsqueeze(0).to(device),
+                    "ee_obs": torch.as_tensor(obs["ee_obs"], dtype=torch.float32).unsqueeze(0).to(device),
+                    "ee_desc": torch.as_tensor(obs["ee_desc"], dtype=torch.float32).unsqueeze(0).to(device)
                 }
 
                 with torch.no_grad():
@@ -124,7 +126,7 @@ def train(args):
                 R = r + args.gamma * R * (1 - float(d))
                 returns.insert(0, R)
 
-            ep_returns = torch.tensor(returns, dtype=torch.float32)
+            ep_returns = torch.tensor(returns, dtype=torch.float32).to(device)
             ep_values_tensor = torch.stack(ep_values)
             ep_advantages = ep_returns - ep_values_tensor
 
@@ -135,18 +137,18 @@ def train(args):
             all_returns.append(ep_returns)
             all_advantages.append(ep_advantages)
 
-        flat_returns = torch.cat(all_returns, dim=0)
-        flat_advantages = torch.cat(all_advantages, dim=0)
+        flat_returns = torch.cat(all_returns, dim=0).to(device)
+        flat_advantages = torch.cat(all_advantages, dim=0).to(device)
         flat_advantages = (flat_advantages - flat_advantages.mean()) / (flat_advantages.std() + 1e-8)
 
         batch_inp = {
-            k: torch.cat([s[k] for s in all_states], dim=0)
+            k: torch.cat([s[k] for s in all_states], dim=0).to(device)
             for k in all_states[0].keys()
         }
-        batch_actions = torch.stack(all_actions, dim=0)
+        batch_actions = torch.stack(all_actions, dim=0).to(device)
         if batch_actions.dim() == 2:
             batch_actions = batch_actions.unsqueeze(-1)
-        old_log_probs = torch.cat(all_log_probs, dim=0).detach().reshape(-1)
+        old_log_probs = torch.cat(all_log_probs, dim=0).detach().reshape(-1).to(device)
 
         for epoch in range(args.epochs):
             v = critic(**batch_inp).squeeze()
