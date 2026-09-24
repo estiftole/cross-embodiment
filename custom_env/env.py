@@ -206,59 +206,83 @@ class EnvTemplate(MujocoEnv):
         return obs, reward, terminated, False, info
 
     def _get_obs(self):
-        # get target delta
-        torso_xy = self.data.qpos[:2]
-        rel_target_pos = self.target_pos - torso_xy
+        torso_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "torso")
 
+        R_torso = self.data.xmat[torso_body_id].reshape(3, 3)
+        yaw = np.arctan2(R_torso[1, 0], R_torso[0, 0])
+        cos_y, sin_y = np.cos(-yaw), np.sin(-yaw)
+        R_heading = np.array([
+            [cos_y, -sin_y, 0.0],
+            [sin_y,  cos_y, 0.0],
+            [0.0,    0.0,   1.0]
+        ], dtype=np.float32)
+
+        torso_xy = self.data.qpos[:2]
+        world_rel_target = np.array([self.target_pos[0] - torso_xy[0], self.target_pos[1] - torso_xy[1], 0.0])
+        local_rel_target = (R_heading @ world_rel_target)[:2].astype(np.float32)
+
+        world_lin_vel = self.data.qvel[:3]
+        world_ang_vel = self.data.qvel[3:6]
+
+        local_lin_vel = R_heading @ world_lin_vel
+        local_ang_vel = R_heading @ world_ang_vel
+
+        local_gravity = R_torso.T @ np.array([0.0, 0.0, -1.0])
         torso_z = self.data.qpos[2:3]
-        torso_quat = self.data.qpos[3:7]
-        base_vels = self.data.qvel[:6]
+
         base_obs = np.concatenate([
             torso_z,
-            torso_quat,
-            base_vels
+            local_gravity,
+            local_lin_vel,
+            local_ang_vel
         ]).astype(np.float32)
 
-        # get joint observations
-        joint_obs_list = []
-        for j_id, is_wheel in zip(self.actuated_jnt_ids, self.is_wheel_joint):
-            qpos_adr = self.model.jnt_qposadr[j_id]
-            dof_adr = self.model.jnt_dofadr[j_id]
+        num_joints = len(self.actuated_jnt_ids)
+        if num_joints > 0:
+            q = self.data.qpos[self.jnt_qposadr]
+            qvel = self.data.qvel[self.jnt_dofadr]
 
-            q = self.data.qpos[qpos_adr]
-            qvel = self.data.qvel[dof_adr]
+            joint_obs = np.zeros((num_joints, 3), dtype=np.float32)
 
-            if is_wheel:
-                # Wheel node feature: [sin(q), cos(q), qvel]
-                joint_obs_list.append([np.sin(q), np.cos(q), qvel])
-            else:
-                # Hinge node feature: [q, qvel, 0.0] (padded for uniform (N_joints, 3) matrix shape)
-                joint_obs_list.append([q, qvel, 0.0])
+            if np.any(self.wheel_mask):
+                q_w = q[self.wheel_mask]
+                joint_obs[self.wheel_mask, 0] = np.sin(q_w)
+                joint_obs[self.wheel_mask, 1] = np.cos(q_w)
+                joint_obs[self.wheel_mask, 2] = np.clip(qvel[self.wheel_mask], -10.0, 10.0)
 
-        joint_obs = np.array(joint_obs_list, dtype=np.float32) if joint_obs_list else np.zeros((0, 3), dtype=np.float32)
+            if np.any(self.hinge_mask):
+                hinge_indices = self.actuated_jnt_ids[self.hinge_mask]
+                q_h = q[self.hinge_mask]
 
-        # get end-effector observations
-        ee_obs_list = []
-        root_pos = self.data.qpos[:3]
-        for site_id in self.ee_site_ids:
-            rel_site_pos = self.data.site_xpos[site_id] - root_pos
-            body_id = self.model.site_bodyid[site_id]
-            # contact_force = self.data.cfrc_ext[body_id][:3]
-            contact_force = self.data.cfrc_ext[body_id][3:6]
+                ranges = self.model.jnt_range[hinge_indices]
+                q_min, q_max = ranges[:, 0], ranges[:, 1]
+                q_mid = 0.5 * (q_max + q_min)
+                q_half_range = 0.5 * (q_max - q_min)
+                q_half_range[q_half_range == 0] = 1.0
+                q_norm = (q_h - q_mid) / q_half_range
 
-            ee_vec = np.concatenate([rel_site_pos, contact_force]).astype(np.float32)
-            ee_obs_list.append(ee_vec)
+                joint_obs[self.hinge_mask, 0] = q_norm
+                joint_obs[self.hinge_mask, 1] = np.clip(qvel[self.hinge_mask], -10.0, 10.0)
+        else:
+            joint_obs = np.zeros((0, 3), dtype=np.float32)
 
-        ee_obs = np.array(ee_obs_list, dtype=np.float32) if ee_obs_list else np.zeros((0, 6), dtype=np.float32)
+        if len(self.ee_site_ids) > 0:
+            root_pos = self.data.qpos[:3]
+            world_ee_pos = self.data.site_xpos[self.ee_site_ids] - root_pos
+            local_ee_pos = (world_ee_pos @ R_heading.T).astype(np.float32)
 
-        # pack all this and return
+            raw_contact_forces = self.data.cfrc_ext[self.ee_body_ids, 3:6]
+            scaled_contact_forces = np.clip(raw_contact_forces / 100.0, -1.0, 1.0).astype(np.float32)
+
+            ee_obs = np.hstack([local_ee_pos, scaled_contact_forces])
+        else:
+            ee_obs = np.zeros((0, 6), dtype=np.float32)
+
         return {
-            "target_obs": rel_target_pos,
+            "target_obs": local_rel_target,
             "base_obs": base_obs,
-
             "j_obs": joint_obs,
             "j_desc": self.cached_joint_descriptors,
-
             "ee_obs": ee_obs,
             "ee_desc": self.cached_ee_descriptors,
         }
