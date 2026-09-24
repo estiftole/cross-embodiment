@@ -76,7 +76,7 @@ class EnvTemplate(MujocoEnv):
         self.is_wheel_joint = []
         joint_descriptors = []
 
-        # cache joint descriptions
+        # Cache joint descriptions
         for i in range(self.model.njnt):
             jnt_type = self.model.jnt_type[i]
             if jnt_type == mujoco.mjtJoint.mjJNT_FREE:
@@ -101,7 +101,12 @@ class EnvTemplate(MujocoEnv):
 
         self.cached_joint_descriptors = np.array(joint_descriptors, dtype=np.float32)
 
-        # cache end-effector descriptions
+        # Pre-compute boolean masks for vectorized indexing in _get_obs()
+        self.actuated_jnt_ids = np.array(self.actuated_jnt_ids, dtype=int)
+        self.wheel_mask = np.array(self.is_wheel_joint, dtype=bool)
+        self.hinge_mask = ~self.wheel_mask
+
+        # Cache end-effector descriptions
         self.ee_site_ids = []
         ee_desc = []
 
@@ -115,6 +120,8 @@ class EnvTemplate(MujocoEnv):
                 self.ee_site_ids.append(i)
                 ee_desc.append(ee_description)
 
+        self.ee_site_ids = np.array(self.ee_site_ids, dtype=int)
+        self.ee_body_ids = self.model.site_bodyid[self.ee_site_ids] if len(self.ee_site_ids) > 0 else np.array([], dtype=int)
         self.cached_ee_descriptors = (
             np.array(ee_desc, dtype=np.float32)
             if ee_desc
@@ -239,8 +246,8 @@ class EnvTemplate(MujocoEnv):
 
         num_joints = len(self.actuated_jnt_ids)
         if num_joints > 0:
-            q = self.data.qpos[self.jnt_qposadr]
-            qvel = self.data.qvel[self.jnt_dofadr]
+            q = self.data.qpos[self.model.jnt_qposadr[self.actuated_jnt_ids]]
+            qvel = self.data.qvel[self.model.jnt_dofadr[self.actuated_jnt_ids]]
 
             joint_obs = np.zeros((num_joints, 3), dtype=np.float32)
 
