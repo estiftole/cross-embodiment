@@ -159,33 +159,51 @@ class EnvTemplate(MujocoEnv):
         self.do_simulation(action, self.frame_skip)
 
         torso_xy = self.data.qpos[:2]
-        torso_vel_xy = self.data.qvel[:2]
+        torso_z = self.data.qpos[2]
 
-        vector_to_target = self.target_pos - torso_xy
-        distance_to_target = np.linalg.norm(vector_to_target)
+        distance_to_target = np.linalg.norm(self.target_pos - torso_xy)
+        dt = self.frame_skip * self.model.opt.timestep
+        progress_reward = (self.prev_distance - distance_to_target) / dt
+        self.prev_distance = distance_to_target
 
-        if distance_to_target > 0:
-            direction_to_target = vector_to_target / distance_to_target
-        else:
-            direction_to_target = np.zeros(2)
+        healthy_reward = 1.0
 
-        direction_reward = np.dot(torso_vel_xy, direction_to_target)
+        torso_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "torso")
+        torso_z_orientation = self.data.xmat[torso_body_id][8]  # R22 element
+        upright_reward = 0.5 * max(0.0, torso_z_orientation)
+
         ctrl_cost = 0.001 * np.sum(np.square(action))
+        smoothness_cost = 0.01 * np.sum(np.square(action - self.prev_action))
+        self.prev_action = action.copy()
 
-        reward = direction_reward - ctrl_cost
+        reward = (
+            progress_reward
+            + healthy_reward
+            + upright_reward
+            - ctrl_cost
+            - smoothness_cost
+        )
+
+        terminated = torso_z < self.min_torso_height
 
         if distance_to_target < self.target_reach_threshold:
             reward += 10.0
-            self._sample_target()
+            terminated = True
 
-        torso_z_height = self.data.qpos[2]
-        terminated = torso_z_height < self.min_torso_height
+        info = {
+            "reward_progress": progress_reward,
+            "reward_healthy": healthy_reward,
+            "reward_upright": upright_reward,
+            "cost_ctrl": ctrl_cost,
+            "cost_smoothness": smoothness_cost,
+            "distance_to_target": distance_to_target,
+        }
 
         if self.render_mode == "human":
             self.render()
 
         obs = self._get_obs()
-        return obs, reward, terminated, False, {}
+        return obs, reward, terminated, False, info
 
     def _get_obs(self):
         # get target delta
@@ -254,7 +272,9 @@ class EnvTemplate(MujocoEnv):
         self.set_state(qpos, qvel)
 
         self._sample_target()
-        self.graph_topology = self._extract_graph_topology()
+
+        self.prev_distance = np.linalg.norm(self.target_pos - self.data.qpos[:2])
+        self.prev_action = np.zeros(self.action_space.shape, dtype=np.float32)
 
         return self._get_obs()
 
