@@ -3,7 +3,7 @@ import torch
 import numpy as np
 from pathlib import Path
 from algorithms.urma import URMAActor
-from env import BipedEnv
+from env import CrossEmbodimentEnv
 
 from gymnasium.wrappers import RecordVideo, TimeLimit
 
@@ -15,7 +15,11 @@ def evaluate(args):
     set_seed(args.seed)
     render_mode = "human" if args.render else "rgb_array"
 
-    env = BipedEnv(render_mode=render_mode)
+    starting_embodiment="quadped"
+    env = CrossEmbodimentEnv(
+        render_mode=render_mode,
+        starting_embodiment=starting_embodiment
+    )
     env = TimeLimit(env, max_episode_steps=args.max_steps)
     if render_mode == "rgb_array":
         out_dir = Path(args.output_dir)

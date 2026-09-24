@@ -1,6 +1,6 @@
 import argparse
 from algorithms.urma import URMAActor, URMACritic
-from env import BipedEnv
+from env import CrossEmbodimentEnv
 import torch
 import csv
 import os
@@ -10,7 +10,8 @@ def train(args):
     os.makedirs("checkpoints", exist_ok=True)
     os.makedirs("logs", exist_ok=True)
 
-    env = BipedEnv()
+    starting_embodiment="quadped"
+    env = CrossEmbodimentEnv(starting_embodiment=starting_embodiment)
     obs, _ = env.reset()
 
     j_obs_dim = obs["j_obs"].shape[-1]
