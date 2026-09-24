@@ -170,11 +170,11 @@ class EnvTemplate(MujocoEnv):
         direction_reward = np.dot(torso_vel_xy, direction_to_target)
         ctrl_cost = 0.001 * np.sum(np.square(action))
 
-        reward = direction_reward - ctrl_cost
+        reward = direction_reward - distance_to_target - ctrl_cost
 
         if distance_to_target < self.target_reach_threshold:
             reward += 10.0
-            self._sample_target()
+            self.reset_model()
 
         torso_z_height = self.data.qpos[2]
         terminated = torso_z_height < self.min_torso_height
