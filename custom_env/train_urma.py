@@ -10,7 +10,7 @@ def train(args):
     os.makedirs("checkpoints", exist_ok=True)
     os.makedirs("logs", exist_ok=True)
 
-    starting_embodiment="quadped"
+    starting_embodiment="biped"
     env = CrossEmbodimentEnv(starting_embodiment=starting_embodiment)
     obs, _ = env.reset()
 

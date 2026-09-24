@@ -4,7 +4,7 @@ import numpy as np
 if __name__ == "__main__":
     render_mode = "human"
     # env = QuadpedEnv(render_mode=render_mode)
-    starting_embodiment="quadped"
+    starting_embodiment="biped"
     env = CrossEmbodimentEnv(
         render_mode=render_mode,
         starting_embodiment=starting_embodiment

@@ -15,7 +15,7 @@ def evaluate(args):
     set_seed(args.seed)
     render_mode = "human" if args.render else "rgb_array"
 
-    starting_embodiment="quadped"
+    starting_embodiment="biped"
     env = CrossEmbodimentEnv(
         render_mode=render_mode,
         starting_embodiment=starting_embodiment
