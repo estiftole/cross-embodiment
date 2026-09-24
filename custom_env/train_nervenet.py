@@ -72,7 +72,7 @@ def train(args):
 
             for _ in range(args.rollout_len):
                 total_timesteps += 1
-                inp = prepare_inputs(obs, env.graph_topology, device)
+                inp = prepare_inputs(obs, env.active_env.graph_topology, device)
 
                 with torch.no_grad():
                     act, log_p, _ = actor.get_action_and_log_prob(**inp)
