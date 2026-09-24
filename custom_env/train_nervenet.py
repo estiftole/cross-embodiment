@@ -99,7 +99,7 @@ def train(args):
                 writer = csv.writer(f)
                 writer.writerow([current_ep_num, total_timesteps, ep_reward, ep_reward / len(ep_rewards)])
 
-            if update_step % 5 == 0 and current_ep_num % 10:
+            if update_step % 5 == 0 and current_ep_num % 10 == 0:
                 print(f"Update: {update_step} | Ep: {current_ep_num} | Timesteps: {total_timesteps} | Reward: {ep_reward:.2f}")
 
             returns, R = [], 0
