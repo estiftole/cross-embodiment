@@ -505,6 +505,31 @@ class QuadpedEnv(EnvTemplate):
         mujoco.mj_setConst(self.model, self.data)
         mujoco.mj_forward(self.model, self.data)
 
-class CrossEmbodimentEnv(MujocoEnv):
-    def __init__(self):
-        pass
+class CrossEmbodimentEnv:
+    def __init__(self, starting_env="biped"):
+        self.env = None
+        self.biped_env = BipedEnv
+        self.quadped_env = QuadpedEnv
+
+        self.current_embodiment = starting_env
+        self.switch_model()
+
+    def switch_model(self):
+        if self.current_embodiment == "biped":
+            self.env = self.quadped_env
+        elif self.current_embodiment == "quadped":
+            self.env = self.biped_env
+
+    def step(self, action):
+        return self.env.step(action) if self.env else None
+
+    def reset(self):
+        if self.env:
+            return self.env.reset() if self.env else None
+
+    def close(self):
+        if self.env is None:
+            return None
+        self.env.close()
+        self.switch_model()
+        self.env.close()
