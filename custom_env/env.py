@@ -171,9 +171,8 @@ class EnvTemplate(MujocoEnv):
 
         direction_reward = np.dot(torso_vel_xy, direction_to_target)
         ctrl_cost = 0.001 * np.sum(np.square(action))
-        healthy_reward = 0.5
 
-        reward = direction_reward + healthy_reward - ctrl_cost
+        reward = direction_reward - ctrl_cost
 
         if distance_to_target < self.target_reach_threshold:
             reward += 10.0
