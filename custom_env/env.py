@@ -5,7 +5,7 @@ from gymnasium.envs.mujoco import MujocoEnv
 import numpy as np
 import torch
 
-class CrossEmbodimentEnv(MujocoEnv):
+class EnvTemplate(MujocoEnv):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 100}
     DEFAULT_CAMERA_CONFIG = {
         "distance": 5,
@@ -257,7 +257,7 @@ class CrossEmbodimentEnv(MujocoEnv):
         if os.path.exists(self.tmp_model.name):
             os.remove(self.tmp_model.name)
 
-class BipedEnv(CrossEmbodimentEnv):
+class BipedEnv(EnvTemplate):
     def __init__(
         self,
         robot_xml_path="custom_models/biped.xml",
@@ -402,7 +402,7 @@ class BipedEnv(CrossEmbodimentEnv):
             mujoco.mj_forward(self.model, self.data)
 
 
-class QuadpedEnv(CrossEmbodimentEnv):
+class QuadpedEnv(EnvTemplate):
     def __init__(
         self,
         robot_xml_path="custom_models/quadped.xml",
@@ -504,3 +504,7 @@ class QuadpedEnv(CrossEmbodimentEnv):
 
         mujoco.mj_setConst(self.model, self.data)
         mujoco.mj_forward(self.model, self.data)
+
+class CrossEmbodimentEnv(MujocoEnv):
+    def __init__(self):
+        pass
