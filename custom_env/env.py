@@ -193,10 +193,14 @@ class EnvTemplate(MujocoEnv):
         torso_xy = self.data.qpos[:2]
         rel_target_pos = self.target_pos - torso_xy
 
-        # get base linear and angular velocities
-        base_linvel = self.data.qvel[:3]
-        base_angvel = self.data.qvel[3:6]
-        base_obs = np.concatenate([base_linvel, base_angvel]).astype(np.float32)
+        torso_z = self.data.qpos[2:3]
+        torso_quat = self.data.qpos[3:7]
+        base_vels = self.data.qvel[:6]
+        base_obs = np.concatenate([
+            torso_z,
+            torso_quat,
+            base_vels
+        ]).astype(np.float32)
 
         # get joint observations
         joint_obs_list = []
