@@ -204,7 +204,7 @@ class EnvTemplate(MujocoEnv):
             "reward_healthy": healthy_reward,
             "reward_upright": upright_reward,
             "cost_ctrl": ctrl_cost,
-            "cost_smoothness": smoothness_cost,
+            # "cost_smoothness": smoothness_cost,
             "distance_to_target": distance_to_target,
         }
 
