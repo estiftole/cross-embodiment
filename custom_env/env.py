@@ -16,7 +16,7 @@ class EnvTemplate(MujocoEnv):
         "lookat": [0.0, 0.0, 1.0],
     }
 
-    def __init__(self, scene_xml_path="custom_models/flat_scene.xml", robot_xml_path="custom_models/model.xml", **kwargs):
+    def __init__(self, scene_xml_path="custom_models/flat_scene.xml", robot_xml_path="custom_models/model.xml", target_update_interval=10, **kwargs):
         scene_xml_content = f"""
         <mujoco model="walking_scene">
           <include file="{os.path.abspath(scene_xml_path)}"/>
@@ -42,6 +42,8 @@ class EnvTemplate(MujocoEnv):
         self.target_bounds = [-2.0, 2.0]
         self.target_reach_threshold = 0.5
         self.random_change_prob = 0.005
+        self.episodes = 0
+        self.target_update_interval = target_update_interval
 
         super().__init__(
             model_path=self.tmp_model.name,
@@ -302,10 +304,12 @@ class EnvTemplate(MujocoEnv):
         qvel += self.np_random.uniform(low=-0.01, high=0.01, size=self.model.nv)
         self.set_state(qpos, qvel)
 
-        self._sample_target()
+        if self.episodes % self.target_update_interval == 0:
+            self._sample_target()
 
         self.prev_distance = np.linalg.norm(self.target_pos - self.data.qpos[:2])
         self.prev_action = np.zeros(self.action_space.shape, dtype=np.float32)
+        self.episodes += 1
 
         return self._get_obs()
 
@@ -318,16 +322,19 @@ class BipedEnv(EnvTemplate):
     def __init__(
         self,
         robot_xml_path="custom_models/biped.xml",
-        render_mode=None
+        render_mode=None,
+        target_update_interval=10
     ):
         if render_mode:
             super().__init__(
                 robot_xml_path=robot_xml_path,
-                render_mode=render_mode
+                render_mode=render_mode,
+                target_update_interval=target_update_interval
             )
         else:
             super().__init__(
-                robot_xml_path=robot_xml_path
+                robot_xml_path=robot_xml_path,
+                target_update_interval=target_update_interval
             )
         self._cache_nominal_geometry()
 
@@ -463,16 +470,19 @@ class QuadpedEnv(EnvTemplate):
     def __init__(
         self,
         robot_xml_path="custom_models/quadped.xml",
-        render_mode=None
+        render_mode=None,
+        target_update_interval=10
     ):
         if render_mode:
             super().__init__(
                 robot_xml_path=robot_xml_path,
-                render_mode=render_mode
+                render_mode=render_mode,
+                target_update_interval=target_update_interval
             )
         else:
             super().__init__(
-                robot_xml_path=robot_xml_path
+                robot_xml_path=robot_xml_path,
+                target_update_interval=target_update_interval
             )
 
     def set_torso_dimensions(
@@ -562,7 +572,7 @@ class QuadpedEnv(EnvTemplate):
         mujoco.mj_forward(self.model, self.data)
 
 class CrossEmbodimentEnv(gym.Env):
-    def __init__(self, starting_embodiment="quadped", render_mode=None):
+    def __init__(self, starting_embodiment="quadped", target_update_interval=10, render_mode=None):
         super().__init__()
         self.render_mode = render_mode
         self.registry = {
@@ -572,6 +582,7 @@ class CrossEmbodimentEnv(gym.Env):
 
         self.current_embodiment = None
         self.active_env = None
+        self.target_update_interval = target_update_interval
         self.switch_embodiment(starting_embodiment)
 
     def switch_embodiment(self, embodiment_name: str):
@@ -585,7 +596,7 @@ class CrossEmbodimentEnv(gym.Env):
             self.active_env.close()
 
         self.current_embodiment = embodiment_name
-        self.active_env = self.registry[embodiment_name](render_mode=self.render_mode)
+        self.active_env = self.registry[embodiment_name](render_mode=self.render_mode, target_update_interval=self.target_update_interval)
 
         self.action_space = self.active_env.action_space
 
