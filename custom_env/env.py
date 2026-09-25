@@ -182,15 +182,15 @@ class EnvTemplate(MujocoEnv):
         upright_reward = 0.5 * max(0.0, torso_z_orientation)
 
         ctrl_cost = 0.001 * np.sum(np.square(action))
-        smoothness_cost = 0.01 * np.sum(np.square(action - self.prev_action))
-        self.prev_action = action.copy()
+        # smoothness_cost = 0.01 * np.sum(np.square(action - self.prev_action))
+        # self.prev_action = action.copy()
 
         reward = (
             progress_reward
             + healthy_reward
             + upright_reward
             - ctrl_cost
-            - smoothness_cost
+            # - smoothness_cost
         )
 
         terminated = torso_z < self.min_torso_height
@@ -308,7 +308,7 @@ class EnvTemplate(MujocoEnv):
             self._sample_target()
 
         self.prev_distance = np.linalg.norm(self.target_pos - self.data.qpos[:2])
-        self.prev_action = np.zeros(self.action_space.shape, dtype=np.float32)
+        # self.prev_action = np.zeros(self.action_space.shape, dtype=np.float32)
         self.episodes += 1
 
         return self._get_obs()
