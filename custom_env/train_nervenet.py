@@ -23,7 +23,6 @@ def train(args):
         j_obs_dim=j_obs_dim,
         target_obs_dim=target_obs_dim,
         base_obs_dim=base_obs_dim,
-
         obs_enc_hidden_dim=32,
         hidden_state_dim=64,
         updater_hidden_dim=64,
@@ -38,7 +37,6 @@ def train(args):
         j_obs_dim=j_obs_dim,
         target_obs_dim=target_obs_dim,
         base_obs_dim=base_obs_dim,
-
         obs_enc_hidden_dim=32,
         hidden_state_dim=64,
         updater_hidden_dim=64,
@@ -128,7 +126,6 @@ def train(args):
             ep_values_tensor = torch.stack(ep_values)
             ep_advantages = ep_returns - ep_values_tensor
 
-            # append to global update buffer
             all_states.extend(ep_states)
             all_actions.extend(ep_actions)
             all_log_probs.extend(ep_log_probs)
