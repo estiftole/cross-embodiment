@@ -175,7 +175,7 @@ class EnvTemplate(MujocoEnv):
         progress_reward = (self.prev_distance - distance_to_target) / dt
         self.prev_distance = distance_to_target
 
-        healthy_reward = 1.0
+        healthy_reward = 0.1
 
         torso_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "torso")
         torso_z_orientation = self.data.xmat[torso_body_id][8]  # R22 element
