@@ -69,6 +69,7 @@ def train(args):
             obs, _ = env.reset()
             ep_states, ep_actions, ep_rewards, ep_values, ep_dones, ep_log_probs = [], [], [], [], [], []
             ep_reward = 0.0
+            terminated_flag = False
 
             for _ in range(args.rollout_len):
                 total_timesteps += 1
@@ -94,7 +95,25 @@ def train(args):
                 ep_reward += float(r.item() if hasattr(r, "item") else r)
                 obs = next_obs
                 if done:
+                    terminated_flag = term
                     break
+            else:
+                terminated_flag = False
+
+            if terminated_flag:
+                    bootstrap_value = 0.0
+            else:
+                with torch.no_grad():
+                    final_inp = prepare_inputs(obs, env.active_env.graph_topology, device)
+                    bootstrap_value = critic(
+                        final_inp["target_obs"], final_inp["base_obs"], final_inp["j_obs"],
+                        final_inp["senders"], final_inp["receivers"]
+                    ).squeeze().item()
+
+            returns, R = [], bootstrap_value
+            for r, d in zip(reversed(ep_rewards), reversed(ep_dones)):
+                R = r + args.gamma * R * (1 - float(d))
+                returns.insert(0, R)
 
             current_ep_num = update_step * args.episodes_per_update + ep_idx
 
@@ -104,11 +123,6 @@ def train(args):
 
             if update_step % 10 == 0 and current_ep_num % 10 == 0:
                 print(f"Update: {update_step} | Ep: {current_ep_num} | Timesteps: {total_timesteps} | Reward: {ep_reward:.2f}")
-
-            returns, R = [], 0
-            for r, d in zip(reversed(ep_rewards), reversed(ep_dones)):
-                R = r + args.gamma * R * (1 - float(d))
-                returns.insert(0, R)
 
             ep_returns = torch.tensor(returns, dtype=torch.float32).to(device)
             ep_values_tensor = torch.stack(ep_values)

@@ -45,6 +45,7 @@ def evaluate(args):
         done = False
         step = 0
 
+        total_reward = 0
         while not done and step < args.max_steps:
             inp = {
                 "target_obs": torch.as_tensor(obs["target_obs"], dtype=torch.float32).unsqueeze(0),
@@ -66,6 +67,8 @@ def evaluate(args):
 
             step += 1
             obs = next_obs
+            total_reward += r
+        print(f"Reward: {total_reward}")
 
     env.close()
 

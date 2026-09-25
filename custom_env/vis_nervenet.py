@@ -45,6 +45,7 @@ def evaluate(args):
         done = False
         step = 0
 
+        total_reward = 0
         while not done and step < args.max_steps:
             inp = prepare_inputs(obs, env.unwrapped.active_env.graph_topology, torch.device(args.device))
             inp = {k: v.to(args.device) if isinstance(v, torch.Tensor) else v for k, v in inp.items()}
@@ -59,6 +60,8 @@ def evaluate(args):
 
             step += 1
             obs = next_obs
+            total_reward += r
+        print(f"Reward: {total_reward}")
     env.close()
 
 if __name__ == "__main__":

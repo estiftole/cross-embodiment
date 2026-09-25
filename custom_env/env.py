@@ -40,7 +40,7 @@ class EnvTemplate(MujocoEnv):
         self.tmp_model = tempfile.NamedTemporaryFile(suffix=".xml", delete=False, mode="w")
         self.tmp_model.write(scene_xml_content)
         self.tmp_model.close()
-        self.min_torso_height = 1
+        self.min_torso_height = 1.0
 
         self.target_pos = np.zeros(2)
         self.target_bounds = [-2.0, 2.0]
@@ -191,8 +191,6 @@ class EnvTemplate(MujocoEnv):
             -1.0,
             1.0
         )
-
-        progress_reward = toward_target_velocity
 
         healthy_reward = 0.1
 

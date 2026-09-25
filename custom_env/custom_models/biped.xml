@@ -5,7 +5,7 @@
   </default>
 
   <worldbody>
-    <body name="torso" pos="0 0 2">
+    <body name="torso" pos="0 0 1.5">
       <freejoint/>
       <geom name="torso_box" type="box" size="0.08 0.18 0.3"/>
       <geom name="pelvis_sphere" type="sphere" size="0.04" pos="0 0 -0.34"/>
