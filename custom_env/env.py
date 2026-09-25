@@ -216,7 +216,6 @@ class EnvTemplate(MujocoEnv):
             "distance_to_target": distance_to_target,
         }
 
-        print(torso_z)
 
         if self.render_mode == "human":
             self.render()
