@@ -170,16 +170,22 @@ class EnvTemplate(MujocoEnv):
         torso_xy = self.data.qpos[:2]
         torso_z = self.data.qpos[2]
 
-        delta = self.target_pos - torso_xy
-        distance_to_target = np.linalg.norm(self.target_pos - torso_xy)
+        target_delta = self.target_pos - torso_xy
+        distance_to_target = np.linalg.norm(target_delta)
 
-        target_dir = delta / (distance_to_target + 1e-8)
+        target_dir = target_delta / (distance_to_target + 1e-8)
 
         torso_vel_xy = self.data.qvel[:2]
 
         toward_target_velocity = np.dot(
             torso_vel_xy,
             target_dir
+        )
+
+        progress_reward = np.clip(
+            toward_target_velocity,
+            -1.0,
+            1.0
         )
 
         progress_reward = toward_target_velocity
