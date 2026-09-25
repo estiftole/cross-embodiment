@@ -16,7 +16,11 @@ class EnvTemplate(MujocoEnv):
         "lookat": [0.0, 0.0, 1.0],
     }
 
-    def __init__(self, scene_xml_path="custom_models/flat_scene.xml", robot_xml_path="custom_models/model.xml", target_update_interval=10, **kwargs):
+    def __init__(self,
+        target_update_interval,
+        scene_xml_path="custom_models/flat_scene.xml",
+        robot_xml_path="custom_models/model.xml",
+        **kwargs):
         scene_xml_content = f"""
         <mujoco model="walking_scene">
           <include file="{os.path.abspath(scene_xml_path)}"/>
@@ -335,9 +339,9 @@ class EnvTemplate(MujocoEnv):
 class BipedEnv(EnvTemplate):
     def __init__(
         self,
+        target_update_interval,
         robot_xml_path="custom_models/biped.xml",
         render_mode=None,
-        target_update_interval=10
     ):
         if render_mode:
             super().__init__(
@@ -483,9 +487,9 @@ class BipedEnv(EnvTemplate):
 class QuadpedEnv(EnvTemplate):
     def __init__(
         self,
+        target_update_interval,
         robot_xml_path="custom_models/quadped.xml",
         render_mode=None,
-        target_update_interval=10
     ):
         if render_mode:
             super().__init__(
@@ -586,7 +590,7 @@ class QuadpedEnv(EnvTemplate):
         mujoco.mj_forward(self.model, self.data)
 
 class CrossEmbodimentEnv(gym.Env):
-    def __init__(self, starting_embodiment="quadped", target_update_interval=10, render_mode=None):
+    def __init__(self, starting_embodiment="quadped", target_update_interval=20, render_mode=None):
         super().__init__()
         self.render_mode = render_mode
         self.registry = {
