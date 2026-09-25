@@ -179,9 +179,13 @@ class EnvTemplate(MujocoEnv):
 
         torso_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "torso")
         torso_z_orientation = self.data.xmat[torso_body_id][8]  # R22 element
-        upright_reward = max(-0.5, torso_z_orientation)
+        upright_reward = np.clip(
+            (torso_z_orientation - 0.5) / 0.5,
+            0.0,
+            1.0,
+        )
 
-        ctrl_cost = 0.01 * np.sum(np.square(action))
+        ctrl_cost = 0.05 * np.sum(np.square(action))
         # smoothness_cost = 0.01 * np.sum(np.square(action - self.prev_action))
         # self.prev_action = action.copy()
 
