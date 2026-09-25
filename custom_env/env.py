@@ -170,20 +170,25 @@ class EnvTemplate(MujocoEnv):
         torso_xy = self.data.qpos[:2]
         torso_z = self.data.qpos[2]
 
+        delta = self.target_pos - torso_xy
         distance_to_target = np.linalg.norm(self.target_pos - torso_xy)
-        dt = self.frame_skip * self.model.opt.timestep
-        progress_reward = (self.prev_distance - distance_to_target) / dt
-        self.prev_distance = distance_to_target
+
+        target_dir = delta / (distance_to_target + 1e-8)
+
+        torso_vel_xy = self.data.qvel[:2]
+
+        toward_target_velocity = np.dot(
+            torso_vel_xy,
+            target_dir
+        )
+
+        progress_reward = toward_target_velocity
 
         healthy_reward = 0.1
 
         torso_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "torso")
-        torso_z_orientation = self.data.xmat[torso_body_id][8]  # R22 element
-        upright_reward = np.clip(
-            (torso_z_orientation - 0.5) / 0.5,
-            0.0,
-            1.0,
-        )
+        torso_z_orientation = self.data.xmat[torso_body_id][8] # R22 element
+        upright_reward = max(-0.5, torso_z_orientation)
 
         ctrl_cost = 0.05 * np.sum(np.square(action))
         # smoothness_cost = 0.01 * np.sum(np.square(action - self.prev_action))
@@ -202,7 +207,6 @@ class EnvTemplate(MujocoEnv):
         if distance_to_target < self.target_reach_threshold:
             reward += 10.0
             self._sample_target()
-            self.prev_distance = np.linalg.norm(self.target_pos - torso_xy)
 
         info = {
             "reward_progress": progress_reward,
@@ -313,7 +317,6 @@ class EnvTemplate(MujocoEnv):
         if self.episodes % self.target_update_interval == 0:
             self._sample_target()
 
-        self.prev_distance = np.linalg.norm(self.target_pos - self.data.qpos[:2])
         # self.prev_action = np.zeros(self.action_space.shape, dtype=np.float32)
         self.episodes += 1
 
