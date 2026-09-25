@@ -196,7 +196,7 @@ class EnvTemplate(MujocoEnv):
         terminated = torso_z < self.min_torso_height
 
         if distance_to_target < self.target_reach_threshold:
-            reward += 10.0
+            reward += 50.0
             self._sample_target()
 
         info = {
