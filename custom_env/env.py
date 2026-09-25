@@ -36,7 +36,7 @@ class EnvTemplate(MujocoEnv):
         self.tmp_model = tempfile.NamedTemporaryFile(suffix=".xml", delete=False, mode="w")
         self.tmp_model.write(scene_xml_content)
         self.tmp_model.close()
-        self.min_torso_height = 0.15
+        self.min_torso_height = 1
 
         self.target_pos = np.zeros(2)
         self.target_bounds = [-2.0, 2.0]
@@ -198,6 +198,7 @@ class EnvTemplate(MujocoEnv):
         if distance_to_target < self.target_reach_threshold:
             reward += 10.0
             self._sample_target()
+            self.prev_distance = np.linalg.norm(self.target_pos - torso_xy)
 
         info = {
             "reward_progress": progress_reward,
@@ -207,6 +208,7 @@ class EnvTemplate(MujocoEnv):
             "distance_to_target": distance_to_target,
         }
 
+        print(torso_z)
 
         if self.render_mode == "human":
             self.render()
