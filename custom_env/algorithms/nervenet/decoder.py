@@ -6,7 +6,8 @@ class ActionDecoder(nn.Module):
         self.net = nn.Sequential(
             nn.Linear(hidden_state_dim, hidden_dim),
             nn.ReLU(),
-            nn.Linear(hidden_dim, out_dim)
+            nn.Linear(hidden_dim, out_dim),
+            nn.Tanh()
         )
 
     def forward(self, hidden_state):

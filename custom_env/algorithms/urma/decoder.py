@@ -22,7 +22,8 @@ class MuMLP(nn.Module):
             nn.Linear(decoder_out_dim+action_latent_dim+j_prod_dim, hidden_dim),
             nn.LayerNorm(hidden_dim),
             nn.ELU(),
-            nn.Linear(hidden_dim, out_dim)
+            nn.Linear(hidden_dim, out_dim),
+            nn.Tanh()
         )
 
     def forward(self, decoder_out, action_latent, j_prod):
@@ -84,5 +85,6 @@ class ActionDecoder(nn.Module):
             act = action
 
         log_prob = dist.log_prob(act).sum(dim=-1)
+        entropy = dist.entropy().sum(dim=-1)
 
-        return act, log_prob
+        return act, log_prob, entropy

@@ -88,7 +88,7 @@ class SB3URMAPolicy(MultiInputActorCriticPolicy):
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Used during rollout collection."""
         # 1. Compute Actions & Log Probabilities via Actor
-        actions, log_prob = self.actor_net(
+        actions, log_prob, _ = self.actor_net(
             target_obs=obs["target_obs"],
             base_obs=obs["base_obs"],
             j_obs=obs["j_obs"],
@@ -130,7 +130,7 @@ class SB3URMAPolicy(MultiInputActorCriticPolicy):
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Used during PPO optimization step."""
         # 1. Evaluate given actions using URMA Actor
-        evaluated_actions, log_prob = self.actor_net(
+        evaluated_actions, log_prob, entropy = self.actor_net(
             target_obs=obs["target_obs"],
             base_obs=obs["base_obs"],
             j_obs=obs["j_obs"],
@@ -143,10 +143,6 @@ class SB3URMAPolicy(MultiInputActorCriticPolicy):
         # Mask log probabilities for valid active nodes
         if log_prob.ndim > 1:
             log_prob = (log_prob * obs["act_mask"]).sum(dim=-1)
-
-        # Compute entropy surrogate from evaluated actions distribution
-        # (Assuming standard Gaussian log_prob gradient proxy)
-        entropy = -log_prob
 
         # 2. Evaluate State Values
         values = self.critic_net(

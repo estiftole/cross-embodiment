@@ -45,9 +45,9 @@ class URMAActor(nn.Module):
 
         action_latent = self.core_net(j_latent, ee_latent, target_obs, base_obs)
 
-        act, log_prob = self.action_dec(j_desc, action_latent, j_prod, action)
+        act, log_prob, entropy = self.action_dec(j_desc, action_latent, j_prod, action)
 
-        return act, log_prob
+        return act, log_prob, entropy
 
 
 class URMACritic(nn.Module):
