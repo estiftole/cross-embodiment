@@ -45,7 +45,8 @@ model = PPO(
 )
 
 print("Starting URMA PPO Training Loop...")
-model.learn(total_timesteps=100_000)
+model.learn(total_timesteps=1_000_000)
+env.close()
 
 model.save("checkpoints/urma_ppo_model")
 print("Model saved successfully.")

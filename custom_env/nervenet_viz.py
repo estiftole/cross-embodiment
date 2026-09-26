@@ -4,7 +4,8 @@ from env import CrossEmbodimentEnv
 starting_embodiment="biped"
 env = CrossEmbodimentEnv(
     render_mode="human",
-    starting_embodiment=starting_embodiment
+    starting_embodiment=starting_embodiment,
+    target_update_interval=2
 )
 model = PPO.load("checkpoints/nervenet_ppo_model", env=env)
 
@@ -22,3 +23,4 @@ for step in range(1000):
         print(f"Episode finished with total reward: {total_reward}")
         obs, info = env.reset()
         total_reward = 0.0
+env.close()
