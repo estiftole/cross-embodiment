@@ -245,9 +245,12 @@ class EnvTemplate(MujocoEnv):
 
     def _get_obs(self):
         torso_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "torso")
-
         R_torso = self.data.xmat[torso_body_id].reshape(3, 3)
-        yaw = np.arctan2(R_torso[1, 0], R_torso[0, 0])
+
+        # 1. Tilt-robust Heading/Yaw Extraction (Project body forward vector onto XY plane)
+        forward_world = R_torso[:, 0]  # Assuming +X is body forward
+        yaw = np.arctan2(forward_world[1], forward_world[0])
+
         cos_y, sin_y = np.cos(-yaw), np.sin(-yaw)
         R_heading = np.array([
             [cos_y, -sin_y, 0.0],
@@ -255,16 +258,24 @@ class EnvTemplate(MujocoEnv):
             [0.0,    0.0,   1.0]
         ], dtype=np.float32)
 
+        # 2. Normalized Target Observation (Unit Direction + Bounded Distance)
         torso_xy = self.data.qpos[:2]
         world_rel_target = np.array([self.target_pos[0] - torso_xy[0], self.target_pos[1] - torso_xy[1], 0.0])
-        local_rel_target = (R_heading @ world_rel_target)[:2].astype(np.float32)
+        local_rel_target = (R_heading @ world_rel_target)[:2]
 
+        dist_to_target = np.linalg.norm(local_rel_target)
+        target_dir = local_rel_target / (dist_to_target + 1e-8)
+        # Map distance to [0, 1] range using tanh scaling (5.0m characteristic length)
+        scaled_dist = np.tanh(dist_to_target / 5.0)
+
+        target_obs = np.array([target_dir[0], target_dir[1], scaled_dist], dtype=np.float32)
+
+        # 3. Base Kinematics
         world_lin_vel = self.data.qvel[:3]
         world_ang_vel = self.data.qvel[3:6]
 
         local_lin_vel = R_heading @ world_lin_vel
         local_ang_vel = R_heading @ world_ang_vel
-
         local_gravity = R_torso.T @ np.array([0.0, 0.0, -1.0])
         torso_z = self.data.qpos[2:3]
 
@@ -275,6 +286,7 @@ class EnvTemplate(MujocoEnv):
             local_ang_vel
         ]).astype(np.float32)
 
+        # 4. Standardized Joint Observations (Aligning Columns Across Types)
         num_joints = len(self.actuated_jnt_ids)
         if num_joints > 0:
             q = self.data.qpos[self.model.jnt_qposadr[self.actuated_jnt_ids]]
@@ -286,7 +298,8 @@ class EnvTemplate(MujocoEnv):
                 q_w = q[self.wheel_mask]
                 joint_obs[self.wheel_mask, 0] = np.sin(q_w)
                 joint_obs[self.wheel_mask, 1] = np.cos(q_w)
-                joint_obs[self.wheel_mask, 2] = np.clip(qvel[self.wheel_mask], -10.0, 10.0)
+                # Velocity strictly in Column 2
+                joint_obs[self.wheel_mask, 2] = np.clip(qvel[self.wheel_mask] / 10.0, -1.0, 1.0)
 
             if np.any(self.hinge_mask):
                 hinge_indices = self.actuated_jnt_ids[self.hinge_mask]
@@ -300,10 +313,13 @@ class EnvTemplate(MujocoEnv):
                 q_norm = (q_h - q_mid) / q_half_range
 
                 joint_obs[self.hinge_mask, 0] = q_norm
-                joint_obs[self.hinge_mask, 1] = np.clip(qvel[self.hinge_mask], -10.0, 10.0)
+                joint_obs[self.hinge_mask, 1] = 0.0  # Placeholder alignment
+                # Velocity strictly in Column 2
+                joint_obs[self.hinge_mask, 2] = np.clip(qvel[self.hinge_mask] / 10.0, -1.0, 1.0)
         else:
             joint_obs = np.zeros((0, 3), dtype=np.float32)
 
+        # 5. End-Effector Observations
         if len(self.ee_site_ids) > 0:
             root_pos = self.data.qpos[:3]
             world_ee_pos = self.data.site_xpos[self.ee_site_ids] - root_pos
@@ -316,10 +332,11 @@ class EnvTemplate(MujocoEnv):
         else:
             ee_obs = np.zeros((0, 6), dtype=np.float32)
 
+        # 6. Final Dict (Flatten 2D matrices if using a standard MLP policy)
         return {
-            "target_obs": local_rel_target,
+            "target_obs": target_obs,
             "base_obs": base_obs,
-            "j_obs": joint_obs,
+            "j_obs": joint_obs,  # Ensure custom encoder flattens or handles (N, 3)
             "j_desc": self.cached_joint_descriptors,
             "ee_obs": ee_obs,
             "ee_desc": self.cached_ee_descriptors,
