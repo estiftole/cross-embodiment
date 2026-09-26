@@ -44,7 +44,11 @@ class AttentionModule(nn.Module):
     def __init__(self, embed_dim: int, num_heads: int):
         super().__init__()
         self.mha = nn.MultiheadAttention(embed_dim=embed_dim, num_heads=num_heads, batch_first=True)
+        self.norm = nn.LayerNorm(embed_dim)
 
     def forward(self, latent_prod: torch.Tensor):
         attn_out, _ = self.mha(latent_prod, latent_prod, latent_prod)
-        return attn_out
+        residual_out = latent_prod + attn_out
+        normalized_out = self.norm(residual_out)
+
+        return normalized_out
