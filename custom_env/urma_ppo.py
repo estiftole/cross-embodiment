@@ -6,12 +6,12 @@ from stable_baselines3.common.env_util import make_vec_env
 starting_embodiment="biped"
 def make_env():
     wrapped_env = CrossEmbodimentEnv(
-        render_mode="human",
+        # render_mode="human",
         starting_embodiment=starting_embodiment
     )
     return wrapped_env
 
-env = make_vec_env(make_env, n_envs=1)
+env = make_vec_env(make_env, n_envs=4)
 
 policy_kwargs = dict(
     enc_hidden_dim=64,
@@ -44,7 +44,7 @@ model = PPO(
 )
 
 print("Starting URMA PPO Training Loop...")
-model.learn(total_timesteps=100)
+model.learn(total_timesteps=100_000)
 env.close()
 
 model.save("checkpoints/urma_ppo_model")
