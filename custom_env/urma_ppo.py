@@ -41,7 +41,6 @@ model = PPO(
     clip_range=0.2,
     ent_coef=0.01,
     verbose=1,
-    tensorboard_log="./urma_ppo_tb/"
 )
 
 print("Starting URMA PPO Training Loop...")
