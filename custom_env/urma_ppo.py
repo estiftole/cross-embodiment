@@ -11,7 +11,7 @@ def make_env():
     )
     return wrapped_env
 
-env = make_vec_env(make_env, n_envs=1)
+env = make_vec_env(make_env, n_envs=4)
 
 policy_kwargs = dict(
     enc_hidden_dim=64,
@@ -45,7 +45,7 @@ model = PPO(
 )
 
 print("Starting URMA PPO Training Loop...")
-model.learn(total_timesteps=1_000_000)
+model.learn(total_timesteps=100_000)
 env.close()
 
 model.save("checkpoints/urma_ppo_model")

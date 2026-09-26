@@ -11,7 +11,7 @@ def make_env():
     )
     return wrapped_env
 
-env = make_vec_env(make_env, n_envs=1)
+env = make_vec_env(make_env, n_envs=4)
 
 policy_kwargs = dict(
     obs_enc_hidden_dim=32,
@@ -34,8 +34,7 @@ model = PPO(
 )
 
 print("Starting NerveNet PPO Training Loop...")
-model.learn(total_timesteps=1_000_000)
-env.close()
+model.learn(total_timesteps=100_000)
 
 model.save("checkpoints/nervenet_ppo_model")
 print("Model saved successfully.")
