@@ -67,6 +67,11 @@ class ActionDecoder(nn.Module):
         mu = self.mu_mlp(dec_out, action_latent, j_prod)
         sigma = self.sigma_layer(dec_out)
 
+        if mu.ndim > 2 and mu.shape[-1] == 1:
+            mu = mu.squeeze(-1)
+        if sigma.ndim > 2 and sigma.shape[-1] == 1:
+            sigma = sigma.squeeze(-1)
+
         dist = Normal(mu, sigma)
 
         if deterministic:
@@ -74,6 +79,8 @@ class ActionDecoder(nn.Module):
         elif action is None:
             act = dist.rsample()
         else:
+            if action.ndim > mu.ndim:
+                action = action.squeeze(-1)
             act = action
 
         log_prob = dist.log_prob(act).sum(dim=-1)
