@@ -40,7 +40,7 @@ model = PPO(
 )
 
 print("Starting NerveNet PPO Training Loop...")
-model.learn(total_timesteps=100_000)
+model.learn(total_timesteps=200_000)
 env.close()
 
 model.save("checkpoints/nervenet_ppo_model")
