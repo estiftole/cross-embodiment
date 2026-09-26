@@ -228,7 +228,7 @@ class EnvTemplate(MujocoEnv):
             "distance_to_target": distance_to_target,
         }
 
-        print(progress_reward)
+        # print(progress_reward)
 
         if self.render_mode == "human":
             self.render()
