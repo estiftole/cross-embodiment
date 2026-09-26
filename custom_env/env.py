@@ -187,11 +187,19 @@ class EnvTemplate(MujocoEnv):
         torso_xy = self.data.qpos[:2]
         torso_z = self.data.qpos[2]
 
-        distance_to_target = np.linalg.norm(self.target_pos - torso_xy)
-        distance_delta = self.previous_distance - distance_to_target
+        target_delta = self.target_pos - torso_xy
+        distance_to_target = np.linalg.norm(target_delta)
 
-        progress_reward = distance_delta * 200.0
-        self.previous_distance = distance_to_target
+        target_dir = target_delta / (distance_to_target + 1e-8)
+
+        torso_vel_xy = self.data.qvel[:2]
+
+        toward_target_velocity = np.dot(
+            torso_vel_xy,
+            target_dir
+        )
+
+        progress_reward = toward_target_velocity * 1.5
 
         healthy_reward = 0.3
 
@@ -228,7 +236,6 @@ class EnvTemplate(MujocoEnv):
             "distance_to_target": distance_to_target,
         }
 
-        # print(progress_reward)
 
         if self.render_mode == "human":
             self.render()
@@ -330,9 +337,6 @@ class EnvTemplate(MujocoEnv):
             self._sample_target()
 
         self.episodes += 1
-
-        torso_xy = self.data.qpos[:2]
-        self.previous_distance = np.linalg.norm(self.target_pos - torso_xy)
 
         return self._get_obs()
 
