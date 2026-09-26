@@ -28,41 +28,43 @@ def prepare_inputs(obs, graph_meta, device):
         "actuatable_nodes": actuatable_nodes
     }
 
+import torch
+import torch.nn as nn
+from torch.distributions import Normal
+
 class NerveNetActor(nn.Module):
     def __init__(self,
         j_obs_dim, target_obs_dim, base_obs_dim,
-
-        obs_enc_hidden_dim,
-        hidden_state_dim,
-
+        obs_enc_hidden_dim, hidden_state_dim,
         updater_hidden_dim, msg_hidden_dim,
-        msg_dim,
-        iterations,
-
-        dec_hidden_dim,
-        action_dim
+        msg_dim, iterations,
+        dec_hidden_dim, action_dim, total_action_dim
     ) -> None:
         super().__init__()
+        combined_obs_dim = j_obs_dim + base_obs_dim
         self.target_enc = ObservationEncoder(target_obs_dim, obs_enc_hidden_dim, hidden_state_dim)
-        self.j_enc = ObservationEncoder(j_obs_dim, obs_enc_hidden_dim, hidden_state_dim)
-        self.base_enc = ObservationEncoder(base_obs_dim, obs_enc_hidden_dim, hidden_state_dim)
+        self.j_enc = ObservationEncoder(combined_obs_dim, obs_enc_hidden_dim, hidden_state_dim)
 
         self.gnn = GraphNN(hidden_state_dim, updater_hidden_dim, msg_hidden_dim, msg_dim, iterations)
         self.action_dec = ActionDecoder(hidden_state_dim, dec_hidden_dim, action_dim)
 
-        self.log_std = torch.nn.Parameter(torch.zeros(1, requires_grad=True))
+        self.log_std = nn.Parameter(torch.zeros(total_action_dim))
 
     def forward(self, target_obs, base_obs, j_obs, senders, receivers, actuatable_nodes):
         target_hidden = self.target_enc(target_obs)
-        j_hidden = self.j_enc(j_obs)
-        base_hidden = self.base_enc(base_obs).unsqueeze(1)
+        base_obs_expanded = base_obs.unsqueeze(1).expand(-1, j_obs.size(1), -1)
 
-        phys_hidden = torch.cat([base_hidden, j_hidden], dim=1)
-        # motor_joint_states = self.gnn(phys_hidden, target_hidden, senders, receivers)
-        motor_joint_states = self.gnn(phys_hidden, target_hidden, senders, receivers)[:, actuatable_nodes, :]
+        combined_obs = torch.cat([base_obs_expanded, j_obs], dim=-1)
+        phys_hidden = self.j_enc(combined_obs)
+        gnn_out = self.gnn(phys_hidden, target_hidden, senders, receivers)
+
+        batch_size = gnn_out.shape[0]
+        batch_idx = torch.arange(batch_size, device=gnn_out.device).unsqueeze(1)
+        motor_joint_states = gnn_out[batch_idx, actuatable_nodes, :]
+
         mu = self.action_dec(motor_joint_states)
 
-        return mu
+        return mu.squeeze(-1)
 
     def get_action_and_log_prob(self, target_obs, base_obs, j_obs, senders, receivers, actuatable_nodes, action=None):
         mu = self.forward(target_obs, base_obs, j_obs, senders, receivers, actuatable_nodes)
@@ -96,9 +98,9 @@ class NerveNetCritic(nn.Module):
         dec_hidden_dim
     ) -> None:
         super().__init__()
+        combined_obs_dim = j_obs_dim + base_obs_dim
         self.target_enc = ObservationEncoder(target_obs_dim, obs_enc_hidden_dim, hidden_state_dim)
-        self.j_enc = ObservationEncoder(j_obs_dim, obs_enc_hidden_dim, hidden_state_dim)
-        self.base_enc = ObservationEncoder(base_obs_dim, obs_enc_hidden_dim, hidden_state_dim)
+        self.j_enc = ObservationEncoder(combined_obs_dim, obs_enc_hidden_dim, hidden_state_dim)
 
         self.gnn = GraphNN(hidden_state_dim, updater_hidden_dim, msg_hidden_dim, msg_dim, iterations)
 
@@ -110,13 +112,13 @@ class NerveNetCritic(nn.Module):
 
     def forward(self, target_obs, base_obs, j_obs, senders, receivers):
         target_hidden = self.target_enc(target_obs)
-        j_hidden = self.j_enc(j_obs)
-        base_hidden = self.base_enc(base_obs).unsqueeze(1)
+        base_obs_expanded = base_obs.unsqueeze(1).expand(-1, j_obs.size(1), -1)
 
-        phys_hidden = torch.cat([base_hidden, j_hidden], dim=1)
-        updated_phys = self.gnn(phys_hidden, target_hidden, senders, receivers)
+        combined_obs = torch.cat([base_obs_expanded, j_obs], dim=-1)
+        phys_hidden = self.j_enc(combined_obs)
+        gnn_out = self.gnn(phys_hidden, target_hidden, senders, receivers)
 
-        graph_summary = updated_phys.mean(dim=1)
+        graph_summary = gnn_out.mean(dim=1)
 
         value = self.value_dec(graph_summary)
 

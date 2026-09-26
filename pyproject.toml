@@ -10,6 +10,5 @@ dependencies = [
     "pygame>=2.6.1",
     "stable-baselines3>=2.9.0",
     "swig>=4.4.1",
-    "tensordict>=0.14.2",
-    "torchrl>=0.14.0",
+    "tensorboard>=2.21.0",
 ]
