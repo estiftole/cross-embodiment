@@ -77,6 +77,12 @@ class SB3URMAPolicy(MultiInputActorCriticPolicy):
             hidden_dim=hidden_dim,
         )
 
+        self.optimizer = self.optimizer_class(
+            self.parameters(),
+            lr=lr_schedule(1),
+            **self.optimizer_kwargs
+        )
+
     def forward(
         self, obs: Dict[str, torch.Tensor], deterministic: bool = False
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
