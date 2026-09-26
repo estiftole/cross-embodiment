@@ -199,11 +199,7 @@ class EnvTemplate(MujocoEnv):
             target_dir
         )
 
-        progress_reward = np.clip(
-            toward_target_velocity,
-            -1.0,
-            1.0
-        )
+        progress_reward = toward_target_velocity * 1.5
 
         healthy_reward = 0.3
 
@@ -228,6 +224,9 @@ class EnvTemplate(MujocoEnv):
         if distance_to_target < self.target_reach_threshold:
             reward += 10.0
             self._sample_target()
+
+        if terminated and distance_to_target >= self.target_reach_threshold:
+            reward -= 50.0
 
         info = {
             "reward_progress": progress_reward,
