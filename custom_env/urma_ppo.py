@@ -6,7 +6,7 @@ from stable_baselines3.common.env_util import make_vec_env
 starting_embodiment="biped"
 def make_env():
     wrapped_env = CrossEmbodimentEnv(
-        render_mode="human",
+        # render_mode="human",
         starting_embodiment=starting_embodiment
     )
     return wrapped_env
