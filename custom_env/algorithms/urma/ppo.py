@@ -83,7 +83,7 @@ class SB3URMAPolicy(MultiInputActorCriticPolicy):
             **self.optimizer_kwargs
         )
 
-    def _build(self):
+    def _build(self, **kwargs):
         pass
 
     def forward(
