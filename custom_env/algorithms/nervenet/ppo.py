@@ -65,6 +65,9 @@ class SB3NerveNetPolicy(MultiInputActorCriticPolicy):
             **self.optimizer_kwargs
         )
 
+    def _build(self):
+        pass
+
     def forward(self, obs: Dict[str, torch.Tensor], deterministic: bool = False) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         mu = self.actor_net(
             obs["target_obs"], obs["base_obs"], obs["j_obs"],

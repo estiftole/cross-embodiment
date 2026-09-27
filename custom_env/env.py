@@ -12,7 +12,7 @@ from gymnasium import spaces
 class EnvTemplate(MujocoEnv):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 100}
     DEFAULT_CAMERA_CONFIG = {
-        "distance": 5,
+        "distance": 15,
         "elevation": -35.26,
         "azimuth": 225.0,
         "lookat": [0.0, 0.0, 1.0],
@@ -42,7 +42,7 @@ class EnvTemplate(MujocoEnv):
         self.tmp_model = tempfile.NamedTemporaryFile(suffix=".xml", delete=False, mode="w")
         self.tmp_model.write(scene_xml_content)
         self.tmp_model.close()
-        self.min_torso_height = 0.5
+        self.min_torso_height = 0.15
 
         self.target_pos = np.zeros(2)
         self.target_reach_threshold = 0.5
@@ -169,8 +169,8 @@ class EnvTemplate(MujocoEnv):
         }
 
     def _sample_target(self):
-        min_dist = 5
-        max_dist = 10
+        min_dist = 4
+        max_dist = 6
 
         dist = self.np_random.uniform(min_dist, max_dist)
         angle = self.np_random.uniform(-np.pi, np.pi)
