@@ -191,10 +191,12 @@ class EnvTemplate(MujocoEnv):
         torso_xy = self.data.qpos[:2]
         distance_from_target = np.linalg.norm(self.target_pos - torso_xy)
 
-        distance_cost = - distance_from_target * 10.0
+        distance_cost = - distance_from_target * 0.1
         ctrl_cost = - np.sum(np.square(action)) * 0.05
 
         reward = distance_cost + ctrl_cost
+
+        print(distance_cost)
 
         info = {
             "distance_cost": distance_cost,
