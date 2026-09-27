@@ -16,16 +16,16 @@ def make_env():
 
 env = make_vec_env(make_env, n_envs=4)
 
-policy_kwargs = dict(
-    obs_enc_hidden_dim=32,
-    hidden_state_dim=64,
-    updater_hidden_dim=64,
-    msg_hidden_dim=32,
-    msg_dim=16,
-    iterations=2,
-    dec_hidden_dim=32,
-    ortho_init=False
-)
+policy_kwargs = {
+    "obs_enc_hidden_dim": 32,
+    "hidden_state_dim": 64,
+    "updater_hidden_dim": 64,
+    "msg_hidden_dim": 32,
+    "msg_dim": 16,
+    "iterations": 2,
+    "dec_hidden_dim": 32,
+    "ortho_init": False
+}
 
 model = PPO(
     policy=SB3NerveNetPolicy,

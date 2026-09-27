@@ -17,20 +17,20 @@ def make_env():
 
 env = make_vec_env(make_env, n_envs=4)
 
-policy_kwargs = dict(
-    enc_hidden_dim=64,
-    j_latent_dim=64,
-    ee_latent_dim=64,
-    embed_dim=64,
-    attn_heads=4,
-    hidden_dim=128,
-    action_latent_dim=64,
-    dec_hidden_dim=64,
-    dec_out_dim=32,
-    mu_hidden_dim=32,
-    action_dim=1,
-    ortho_init=False,
-)
+policy_kwargs = {
+    "enc_hidden_dim": 64,
+    "j_latent_dim": 64,
+    "ee_latent_dim": 64,
+    "embed_dim": 64,
+    "attn_heads": 4,
+    "hidden_dim": 128,
+    "action_latent_dim": 64,
+    "dec_hidden_dim": 64,
+    "dec_out_dim": 32,
+    "mu_hidden_dim": 32,
+    "action_dim": 1,
+    "ortho_init": False,
+}
 
 model = PPO(
     policy=SB3URMAPolicy,
