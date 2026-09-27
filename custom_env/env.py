@@ -169,8 +169,8 @@ class EnvTemplate(MujocoEnv):
         }
 
     def _sample_target(self):
-        min_dist = 0.5
-        max_dist = 1
+        min_dist = 5
+        max_dist = 10
 
         dist = self.np_random.uniform(min_dist, max_dist)
         angle = self.np_random.uniform(-np.pi, np.pi)
@@ -202,7 +202,6 @@ class EnvTemplate(MujocoEnv):
         # torso_z_orientation = self.data.xmat[torso_body_id][8] # R22 element
         # upright_reward = max(-0.5, torso_z_orientation)
 
-
         # healthy_reward = 0.3
         # upright_reward = max(-0.5, torso_z_orientation)
 
@@ -212,8 +211,6 @@ class EnvTemplate(MujocoEnv):
         )
 
         # print("\nprogress_reward", progress_reward)
-        # print("healthy_reward", healthy_reward)
-        # print("upright_reward", upright_reward)
         # print("ctrl_cost", ctrl_cost)
         # print("total_reward", reward)
 
