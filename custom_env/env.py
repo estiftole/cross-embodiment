@@ -576,7 +576,7 @@ class QuadpedEnv(EnvTemplate):
         mujoco.mj_forward(self.model, self.data)
 
 class CrossEmbodimentEnv(gym.Env):
-    def __init__(self, starting_embodiment="quadped", target_update_interval=20, render_mode=None, max_joints=16, max_edges=32, max_ee=8):
+    def __init__(self, starting_embodiment="quadped", target_update_interval=5, render_mode=None, max_joints=16, max_edges=32, max_ee=8):
         super().__init__()
         self.render_mode = render_mode
         self.registry = {

@@ -1,47 +1,57 @@
 <mujoco model="mauve_biped">
-  <default>
-    <geom rgba="0.62 0.46 0.46 1" density="1000" friction="1 0.005 0.0001"/>
-    <joint damping="1.0" armature="0.01" limited="true"/>
-  </default>
+    <compiler angle="degree" coordinate="local" inertiafromgeom="true"/>
 
-  <worldbody>
+    <default>
+    <geom rgba="0.62 0.46 0.46 1" density="1000" friction="1.0 0.005 0.0001"/>
+    <joint damping="1.5" armature="0.01" limited="true"/>
+    <motor ctrlrange="-1.0 1.0"/>
+    </default>
+
+    <worldbody>
     <body name="torso" pos="0 0 1.5">
-      <freejoint/>
-      <geom name="torso_box" type="box" size="0.08 0.18 0.3"/>
-      <geom name="pelvis_sphere" type="sphere" size="0.04" pos="0 0 -0.34"/>
-      <body name="left_leg" pos="0 0.12 -0.34">
+        <freejoint name="root"/>
+
+        <geom name="torso_box" type="box" size="0.08 0.18 0.3" density="300"/>
+        <geom name="pelvis_sphere" type="sphere" size="0.04" pos="0 0 -0.34" density="300"/>
+
+        <body name="left_leg" pos="0 0.12 -0.34">
+        <joint name="left_hip_roll" type="hinge" axis="1 0 0" range="-25 25"/>
         <joint name="left_hip" type="hinge" axis="0 1 0" range="-70 45"/>
         <geom name="left_hip_hinge" type="cylinder" fromto="0 -0.03 0 0 0.05 0" size="0.035"/>
         <geom name="left_thigh" type="cylinder" fromto="0 0.03 0 0 0.03 -0.3" size="0.03"/>
         <body name="left_shin" pos="0 0.03 -0.32">
-          <joint name="left_knee" type="hinge" axis="0 1 0" range="0 120"/>
-          <geom name="left_shin_geom" type="cylinder" fromto="0 0 0 0 0 -0.6" size="0.025"/>
-          <body name="left_foot" pos="0 0 -0.6">
-             <geom name="left_foot_box" type="box" size="0.12 0.07 0.02" pos="0.06 0 -0.02"/>
-             <site name="left_foot_site" pos="0.06 0 -0.02"/>
-          </body>
+            <joint name="left_knee" type="hinge" axis="0 1 0" range="0 120"/>
+            <geom name="left_shin_geom" type="cylinder" fromto="0 0 0 0 0 -0.6" size="0.025"/>
+            <body name="left_foot" pos="0 0 -0.6">
+                <geom name="left_foot_box" type="box" size="0.12 0.07 0.02" pos="0.06 0 -0.02"/>
+                <site name="left_foot_site" pos="0.06 0 -0.02"/>
+            </body>
         </body>
-      </body>
-      <body name="right_leg" pos="0 -0.12 -0.34">
+        </body>
+
+        <body name="right_leg" pos="0 -0.12 -0.34">
+        <joint name="right_hip_roll" type="hinge" axis="1 0 0" range="-25 25"/>
         <joint name="right_hip" type="hinge" axis="0 1 0" range="-70 45"/>
         <geom name="right_hip_hinge" type="cylinder" fromto="0 0.03 0 0 -0.05 0" size="0.035"/>
         <geom name="right_thigh" type="cylinder" fromto="0 -0.03 0 0 -0.03 -0.3" size="0.03"/>
         <body name="right_shin" pos="0 -0.03 -0.32">
-          <joint name="right_knee" type="hinge" axis="0 1 0" range="0 120"/>
-          <geom name="right_shin_geom" type="cylinder" fromto="0 0 0 0 0 -0.6" size="0.025"/>
-          <body name="right_foot" pos="0 0 -0.6">
-             <geom name="right_foot_box" type="box" size="0.12 0.07 0.02" pos="0.06 0 -0.02"/>
-             <site name="right_foot_site" pos="0.06 0 -0.02"/>
-          </body>
+            <joint name="right_knee" type="hinge" axis="0 1 0" range="0 120"/>
+            <geom name="right_shin_geom" type="cylinder" fromto="0 0 0 0 0 -0.6" size="0.025"/>
+            <body name="right_foot" pos="0 0 -0.6">
+                <geom name="right_foot_box" type="box" size="0.12 0.07 0.02" pos="0.06 0 -0.02"/>
+                <site name="right_foot_site" pos="0.06 0 -0.02"/>
+            </body>
         </body>
-      </body>
+        </body>
     </body>
-  </worldbody>
+    </worldbody>
 
-  <actuator>
-    <motor joint="left_hip" gear="100"/>
-    <motor joint="left_knee" gear="100"/>
-    <motor joint="right_hip" gear="100"/>
-    <motor joint="right_knee" gear="100"/>
-  </actuator>
+    <actuator>
+    <motor joint="left_hip_roll" gear="150"/>
+    <motor joint="left_hip" gear="200"/>
+    <motor joint="left_knee" gear="150"/>
+    <motor joint="right_hip_roll" gear="150"/>
+    <motor joint="right_hip" gear="200"/>
+    <motor joint="right_knee" gear="150"/>
+    </actuator>
 </mujoco>
