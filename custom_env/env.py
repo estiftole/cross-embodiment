@@ -45,7 +45,6 @@ class EnvTemplate(MujocoEnv):
         self.min_torso_height = 1.0
 
         self.target_pos = np.zeros(2)
-        self.target_bounds = [-2.0, 2.0]
         self.target_reach_threshold = 0.5
         self.random_change_prob = 0.005
         self.episodes = 0
@@ -170,11 +169,16 @@ class EnvTemplate(MujocoEnv):
         }
 
     def _sample_target(self):
-        self.target_pos = self.np_random.uniform(
-            low=self.target_bounds[0],
-            high=self.target_bounds[1],
-            size=2
-        )
+        min_dist = 3
+        max_dist = 5
+
+        dist = self.np_random.uniform(min_dist, max_dist)
+        angle = self.np_random.uniform(-np.pi, np.pi)
+
+        self.target_pos = np.array([
+            dist * np.cos(angle),
+            dist * np.sin(angle)
+        ], dtype=np.float32)
 
         self.model.site_pos[self.target_site_id][:2] = self.target_pos
         self.model.site_pos[self.target_site_id][2] = 0.5
@@ -199,7 +203,7 @@ class EnvTemplate(MujocoEnv):
             target_dir
         )
 
-        progress_reward = toward_target_velocity * 1.5
+        progress_reward = toward_target_velocity * 5
 
         healthy_reward = 0.3
 
@@ -208,8 +212,13 @@ class EnvTemplate(MujocoEnv):
         upright_reward = max(-0.5, torso_z_orientation)
 
         ctrl_cost = 0.05 * np.sum(np.square(action))
-        # smoothness_cost = 0.01 * np.sum(np.square(action - self.prev_action))
-        # self.prev_action = action.copy()
+
+        if progress_reward > 0:
+            healthy_reward = 0.3
+            upright_reward = max(-0.5, torso_z_orientation)
+        else:
+            healthy_reward = 0.0
+            upright_reward = 0.0
 
         reward = (
             progress_reward
@@ -218,6 +227,12 @@ class EnvTemplate(MujocoEnv):
             - ctrl_cost
             # - smoothness_cost
         )
+
+        # print("\nprogress_reward", progress_reward)
+        # print("healthy_reward", healthy_reward)
+        # print("upright_reward", upright_reward)
+        # print("ctrl_cost", ctrl_cost)
+        # print("total_reward", reward)
 
         terminated = torso_z < self.min_torso_height
 
@@ -260,15 +275,7 @@ class EnvTemplate(MujocoEnv):
 
         # 2. Normalized Target Observation (Unit Direction + Bounded Distance)
         torso_xy = self.data.qpos[:2]
-        world_rel_target = np.array([self.target_pos[0] - torso_xy[0], self.target_pos[1] - torso_xy[1], 0.0])
-        local_rel_target = (R_heading @ world_rel_target)[:2]
-
-        dist_to_target = np.linalg.norm(local_rel_target)
-        target_dir = local_rel_target / (dist_to_target + 1e-8)
-        # Map distance to [0, 1] range using tanh scaling (5.0m characteristic length)
-        scaled_dist = np.tanh(dist_to_target / 5.0)
-
-        target_obs = np.array([target_dir[0], target_dir[1], scaled_dist], dtype=np.float32)
+        target_obs = self.target_pos - torso_xy
 
         # 3. Base Kinematics
         world_lin_vel = self.data.qvel[:3]

@@ -7,7 +7,8 @@ if __name__ == "__main__":
     starting_embodiment="biped"
     env = CrossEmbodimentEnv(
         render_mode=render_mode,
-        starting_embodiment=starting_embodiment
+        starting_embodiment=starting_embodiment,
+        target_update_interval=2
     )
 
     if render_mode=="rgb_array":
@@ -21,9 +22,9 @@ if __name__ == "__main__":
     obs, info = env.reset()
     zero_action = np.zeros(env.action_space.shape)
 
-    max_steps = 100
+    max_steps = 500
     steps_left = max_steps
-    trials_left = 1
+    trials_left = 5
 
     while (trials_left > 0):
         obs, reward, terminated, truncated, info = env.step(zero_action)
