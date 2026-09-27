@@ -9,7 +9,8 @@ max_episode_steps=250
 def make_env():
     wrapped_env = CrossEmbodimentEnv(
         # render_mode="human",
-        starting_embodiment=starting_embodiment
+        starting_embodiment=starting_embodiment,
+        target_update_interval=3
     )
     wrapped_env = TimeLimit(wrapped_env, max_episode_steps=max_episode_steps)
     return wrapped_env
@@ -47,7 +48,7 @@ model = PPO(
 )
 
 print("Starting URMA PPO Training Loop...")
-model.learn(total_timesteps=300_000)
+model.learn(total_timesteps=3_000_000)
 env.close()
 
 model.save("checkpoints/urma_ppo_model")

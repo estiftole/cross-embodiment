@@ -9,7 +9,8 @@ if __name__ == "__main__":
     def make_env():
         env = CrossEmbodimentEnv(
             render_mode="human",
-            starting_embodiment=starting_embodiment
+            starting_embodiment=starting_embodiment,
+            target_update_interval=3
         )
         env = TimeLimit(env, max_episode_steps=max_episode_steps)
         return env
