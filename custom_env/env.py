@@ -196,8 +196,6 @@ class EnvTemplate(MujocoEnv):
 
         reward = distance_cost + ctrl_cost
 
-        print(distance_cost)
-
         info = {
             "distance_cost": distance_cost,
             "cost_ctrl": ctrl_cost,
