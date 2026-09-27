@@ -23,7 +23,7 @@ policy_kwargs = dict(
 )
 
 model = PPO(
-    "MlpPolicy",
+    "MultiInputPolicy",
     env,
 
     policy_kwargs=policy_kwargs,
