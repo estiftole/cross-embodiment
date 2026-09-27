@@ -5,12 +5,13 @@ from stable_baselines3.common.env_util import make_vec_env
 from gymnasium.wrappers import TimeLimit
 
 starting_embodiment="biped"
+max_episode_steps=250
 def make_env():
     wrapped_env = CrossEmbodimentEnv(
         # render_mode="human",
         starting_embodiment=starting_embodiment
     )
-    wrapped_env = TimeLimit(wrapped_env, max_episode_steps=500)
+    wrapped_env = TimeLimit(wrapped_env, max_episode_steps=max_episode_steps)
     return wrapped_env
 
 env = make_vec_env(make_env, n_envs=4)

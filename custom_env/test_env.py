@@ -5,12 +5,13 @@ import numpy as np
 if __name__ == "__main__":
     render_mode = "human"
     starting_embodiment="biped"
+    max_episode_steps=250
     def make_env():
         env = CrossEmbodimentEnv(
             render_mode="human",
             starting_embodiment=starting_embodiment
         )
-        env = TimeLimit(env, max_episode_steps=200)
+        env = TimeLimit(env, max_episode_steps=max_episode_steps)
         return env
 
     env = make_env()
