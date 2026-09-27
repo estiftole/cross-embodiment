@@ -2,6 +2,7 @@ from env import CrossEmbodimentEnv
 from stable_baselines3 import PPO
 from algorithms.nervenet.ppo import SB3NerveNetPolicy
 from stable_baselines3.common.env_util import make_vec_env
+from gymnasium.wrappers import TimeLimit
 
 starting_embodiment="biped"
 def make_env():
@@ -9,6 +10,7 @@ def make_env():
         # render_mode="human",
         starting_embodiment=starting_embodiment
     )
+    wrapped_env = TimeLimit(wrapped_env, max_episode_steps=500)
     return wrapped_env
 
 env = make_vec_env(make_env, n_envs=4)

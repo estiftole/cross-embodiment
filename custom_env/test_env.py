@@ -1,43 +1,29 @@
 from env import CrossEmbodimentEnv
+from gymnasium.wrappers import TimeLimit
 import numpy as np
 
 if __name__ == "__main__":
     render_mode = "human"
-    # env = QuadpedEnv(render_mode=render_mode)
     starting_embodiment="biped"
-    env = CrossEmbodimentEnv(
-        render_mode=render_mode,
-        starting_embodiment=starting_embodiment,
-        target_update_interval=2
-    )
-
-    if render_mode=="rgb_array":
-        from gymnasium.wrappers import RecordVideo
-        env = RecordVideo(
-            env,
-            video_folder="./videos",
-            episode_trigger=lambda episode_id: True,
+    def make_env():
+        env = CrossEmbodimentEnv(
+            render_mode="human",
+            starting_embodiment=starting_embodiment
         )
+        env = TimeLimit(env, max_episode_steps=500)
+        return env
+
+    env = make_env()
 
     obs, info = env.reset()
     zero_action = np.zeros(env.action_space.shape)
 
-    max_steps = 500
-    steps_left = max_steps
-    trials_left = 5
-
-    while (trials_left > 0):
+    total_reward = 0.0
+    while True:
         obs, reward, terminated, truncated, info = env.step(zero_action)
-        steps_left -= 1
+        total_reward += reward
 
-        if terminated or truncated or steps_left == 0:
-            steps_left = max_steps
-            trials_left -= 1
-            if trials_left > 0: obs, info = env.unwrapped.reset()
-
-            # env.unwrapped.set_torso_dimensions(0.3, 0.3, 0.025)
-            # env.unwrapped.set_leg_lengths(thigh_scale=0.8,shin_scale=0.3)
-            # env.unwrapped.set_leg_thickness(thigh_radius=0.04,shin_radius=0.04)
-            # env.unwrapped.set_wheel_dimensions(wheel_diameter=0.2)
-
+        if terminated or truncated:
+            print(f"Episode finished with total reward: {total_reward}")
+            break
     env.close()

@@ -196,28 +196,17 @@ class EnvTemplate(MujocoEnv):
 
         reward = distance_cost + ctrl_cost
 
-        # print("\ndistance_cost", distance_cost)
-        # print("ctrl_cost", ctrl_cost)
-        # print("total_reward", reward)
-
-        torso_z = self.data.qpos[2]
-        terminated = torso_z < self.min_torso_height
-
-        if distance_from_target < self.target_reach_threshold:
-            self._sample_target()
-
         info = {
             "distance_cost": distance_cost,
             "cost_ctrl": ctrl_cost,
             "distance_from_target": distance_from_target,
         }
 
-
         if self.render_mode == "human":
             self.render()
 
         obs = self._get_obs()
-        return obs, reward, terminated, False, info
+        return obs, reward, False, False, info
 
     def _get_obs(self):
         torso_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "torso")
