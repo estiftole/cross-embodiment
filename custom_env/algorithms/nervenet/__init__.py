@@ -111,6 +111,10 @@ class NerveNetCritic(nn.Module):
         )
 
     def forward(self, target_obs, base_obs, j_obs, senders, receivers):
+        target_obs = target_obs.float()
+        base_obs = base_obs.float()
+        j_obs = j_obs.float()
+
         target_hidden = self.target_enc(target_obs)
         base_obs_expanded = base_obs.unsqueeze(1).expand(-1, j_obs.size(1), -1)
 

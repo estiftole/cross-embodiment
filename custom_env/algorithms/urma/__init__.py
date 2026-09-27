@@ -74,6 +74,13 @@ class URMACritic(nn.Module):
         self.value_net = CoreNetwork(j_latent_dim, ee_latent_dim, base_obs_dim, target_obs_dim, hidden_dim, 1)
 
     def forward(self, target_obs, base_obs, j_obs, j_desc, ee_obs, ee_desc):
+        target_obs = target_obs.float()
+        base_obs = base_obs.float()
+        j_obs = j_obs.float()
+        j_desc = j_desc.float()
+        ee_obs = ee_obs.float()
+        ee_desc = ee_desc.float()
+
         j_prod = self.j_composite_enc(j_obs, j_desc)
         j_latent = self.j_attn_module(j_prod)
 
