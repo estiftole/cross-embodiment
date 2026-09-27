@@ -49,7 +49,7 @@ model = PPO(
     device="auto",
 )
 
-print("Starting NerveNet PPO Training Loop...")
+print("Starting Normal PPO Training Loop...")
 model.learn(total_timesteps=300_000)
 env.close()
 
