@@ -196,9 +196,9 @@ class EnvTemplate(MujocoEnv):
 
         reward = distance_cost + ctrl_cost
 
-        print("\ndistance_cost", distance_cost)
-        print("ctrl_cost", ctrl_cost)
-        print("total_reward", reward)
+        # print("\ndistance_cost", distance_cost)
+        # print("ctrl_cost", ctrl_cost)
+        # print("total_reward", reward)
 
         torso_z = self.data.qpos[2]
         terminated = torso_z < self.min_torso_height
