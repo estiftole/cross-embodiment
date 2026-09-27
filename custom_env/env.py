@@ -94,7 +94,6 @@ class EnvTemplate(MujocoEnv):
         self.is_wheel_joint = []
         joint_descriptors = []
 
-        # Cache joint descriptions
         for i in range(self.model.njnt):
             jnt_type = self.model.jnt_type[i]
             if jnt_type == mujoco.mjtJoint.mjJNT_FREE:
@@ -119,12 +118,10 @@ class EnvTemplate(MujocoEnv):
 
         self.cached_joint_descriptors = np.array(joint_descriptors, dtype=np.float32)
 
-        # Pre-compute boolean masks for vectorized indexing in _get_obs()
         self.actuated_jnt_ids = np.array(self.actuated_jnt_ids, dtype=int)
         self.wheel_mask = np.array(self.is_wheel_joint, dtype=bool)
         self.hinge_mask = ~self.wheel_mask
 
-        # Cache end-effector descriptions
         self.ee_site_ids = []
         ee_desc = []
 
@@ -150,7 +147,6 @@ class EnvTemplate(MujocoEnv):
         senders = []
         receivers = []
 
-        # root torso is Node 0
         actuatable_nodes = list(range(1, len(self.actuated_jnt_ids) + 1))
 
         for node_idx, j_id in enumerate(self.actuated_jnt_ids, start=1):
@@ -212,8 +208,7 @@ class EnvTemplate(MujocoEnv):
         torso_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "torso")
         R_torso = self.data.xmat[torso_body_id].reshape(3, 3)
 
-        # 1. Tilt-robust Heading/Yaw Extraction (Project body forward vector onto XY plane)
-        forward_world = R_torso[:, 0]  # Assuming +X is body forward
+        forward_world = R_torso[:, 0]
         yaw = np.arctan2(forward_world[1], forward_world[0])
 
         cos_y, sin_y = np.cos(-yaw), np.sin(-yaw)
@@ -223,11 +218,9 @@ class EnvTemplate(MujocoEnv):
             [0.0,    0.0,   1.0]
         ], dtype=np.float32)
 
-        # 2. Normalized Target Observation (Unit Direction + Bounded Distance)
         torso_xy = self.data.qpos[:2]
         target_obs = self.target_pos - torso_xy
 
-        # 3. Base Kinematics
         world_lin_vel = self.data.qvel[:3]
         world_ang_vel = self.data.qvel[3:6]
 
@@ -243,7 +236,6 @@ class EnvTemplate(MujocoEnv):
             local_ang_vel
         ]).astype(np.float32)
 
-        # 4. Standardized Joint Observations (Aligning Columns Across Types)
         num_joints = len(self.actuated_jnt_ids)
         if num_joints > 0:
             q = self.data.qpos[self.model.jnt_qposadr[self.actuated_jnt_ids]]
@@ -255,7 +247,6 @@ class EnvTemplate(MujocoEnv):
                 q_w = q[self.wheel_mask]
                 joint_obs[self.wheel_mask, 0] = np.sin(q_w)
                 joint_obs[self.wheel_mask, 1] = np.cos(q_w)
-                # Velocity strictly in Column 2
                 joint_obs[self.wheel_mask, 2] = np.clip(qvel[self.wheel_mask] / 10.0, -1.0, 1.0)
 
             if np.any(self.hinge_mask):
@@ -270,13 +261,12 @@ class EnvTemplate(MujocoEnv):
                 q_norm = (q_h - q_mid) / q_half_range
 
                 joint_obs[self.hinge_mask, 0] = q_norm
-                joint_obs[self.hinge_mask, 1] = 0.0  # Placeholder alignment
-                # Velocity strictly in Column 2
+                joint_obs[self.hinge_mask, 1] = 0.0
+
                 joint_obs[self.hinge_mask, 2] = np.clip(qvel[self.hinge_mask] / 10.0, -1.0, 1.0)
         else:
             joint_obs = np.zeros((0, 3), dtype=np.float32)
 
-        # 5. End-Effector Observations
         if len(self.ee_site_ids) > 0:
             root_pos = self.data.qpos[:3]
             world_ee_pos = self.data.site_xpos[self.ee_site_ids] - root_pos
@@ -289,11 +279,10 @@ class EnvTemplate(MujocoEnv):
         else:
             ee_obs = np.zeros((0, 6), dtype=np.float32)
 
-        # 6. Final Dict (Flatten 2D matrices if using a standard MLP policy)
         return {
             "target_obs": target_obs,
             "base_obs": base_obs,
-            "j_obs": joint_obs,  # Ensure custom encoder flattens or handles (N, 3)
+            "j_obs": joint_obs,
             "j_desc": self.cached_joint_descriptors,
             "ee_obs": ee_obs,
             "ee_desc": self.cached_ee_descriptors,
@@ -600,7 +589,6 @@ class CrossEmbodimentEnv(gym.Env):
         ee_obs_dim = sample_obs["ee_obs"].shape[-1] if sample_obs["ee_obs"].ndim > 1 else 6
         ee_desc_dim = sample_obs["ee_desc"].shape[-1] if sample_obs["ee_desc"].ndim > 1 else 4
 
-        # Dynamically build padded observation space
         self.observation_space = spaces.Dict({
             "target_obs": spaces.Box(-np.inf, np.inf, shape=(target_dim,), dtype=np.float32),
             "base_obs": spaces.Box(-np.inf, np.inf, shape=(base_dim,), dtype=np.float32),

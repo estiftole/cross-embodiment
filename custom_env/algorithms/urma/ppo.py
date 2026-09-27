@@ -14,7 +14,7 @@ class SB3URMAPolicy(MultiInputActorCriticPolicy):
         observation_space: spaces.Dict,
         action_space: spaces.Box,
         lr_schedule: Any,
-        # URMA Hidden Architecture Dimensions
+
         enc_hidden_dim: int = 64,
         j_latent_dim: int = 64,
         ee_latent_dim: int = 64,
@@ -30,7 +30,6 @@ class SB3URMAPolicy(MultiInputActorCriticPolicy):
     ):
         super().__init__(observation_space, action_space, lr_schedule, **kwargs)
 
-        # 1. Infer raw feature dimensions dynamically from observation spaces
         target_obs_dim = observation_space["target_obs"].shape[-1]
         base_obs_dim = observation_space["base_obs"].shape[-1]
 
@@ -40,7 +39,6 @@ class SB3URMAPolicy(MultiInputActorCriticPolicy):
         ee_obs_dim = observation_space["ee_obs"].shape[-1]
         ee_desc_dim = observation_space["ee_desc"].shape[-1]
 
-        # 2. Instantiate URMA Actor
         self.actor_net = URMAActor(
             j_obs_dim=j_obs_dim,
             j_desc_dim=j_desc_dim,
@@ -61,7 +59,6 @@ class SB3URMAPolicy(MultiInputActorCriticPolicy):
             action_dim=action_dim,
         )
 
-        # 3. Instantiate URMA Critic
         self.critic_net = URMACritic(
             j_obs_dim=j_obs_dim,
             j_desc_dim=j_desc_dim,
@@ -86,8 +83,6 @@ class SB3URMAPolicy(MultiInputActorCriticPolicy):
     def forward(
         self, obs: Dict[str, torch.Tensor], deterministic: bool = False
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Used during rollout collection."""
-        # 1. Compute Actions & Log Probabilities via Actor
         actions, log_prob, _ = self.actor_net(
             target_obs=obs["target_obs"],
             base_obs=obs["base_obs"],
@@ -95,21 +90,17 @@ class SB3URMAPolicy(MultiInputActorCriticPolicy):
             j_desc=obs["j_desc"],
             ee_obs=obs["ee_obs"],
             ee_desc=obs["ee_desc"],
-            action=None  # Triggers sampling inside ActionDecoder
+            action=None
         )
 
-        # Ensure action shape is flat across nodes: (B, max_joints)
         if actions.ndim > 2:
             actions = actions.squeeze(-1)
 
-        # Apply action mask to zero out dummy padded joints
         actions = actions * obs["act_mask"]
 
-        # Ensure log_prob matches padded joint dimensions and mask
         if log_prob.ndim > 1:
             log_prob = (log_prob * obs["act_mask"]).sum(dim=-1)
 
-        # 2. Compute State Values via Critic
         values = self.critic_net(
             target_obs=obs["target_obs"],
             base_obs=obs["base_obs"],
@@ -120,7 +111,7 @@ class SB3URMAPolicy(MultiInputActorCriticPolicy):
         )
 
         if values.ndim > 2:
-            values = values.mean(dim=1)  # Pool per-node scalar values to graph level
+            values = values.mean(dim=1)
         values = values.reshape(-1, 1)
 
         return actions, values, log_prob
@@ -128,8 +119,6 @@ class SB3URMAPolicy(MultiInputActorCriticPolicy):
     def evaluate_actions(
         self, obs: Dict[str, torch.Tensor], actions: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Used during PPO optimization step."""
-        # 1. Evaluate given actions using URMA Actor
         evaluated_actions, log_prob, entropy = self.actor_net(
             target_obs=obs["target_obs"],
             base_obs=obs["base_obs"],
@@ -137,14 +126,12 @@ class SB3URMAPolicy(MultiInputActorCriticPolicy):
             j_desc=obs["j_desc"],
             ee_obs=obs["ee_obs"],
             ee_desc=obs["ee_desc"],
-            action=actions  # Evaluate provided rollout actions
+            action=actions
         )
 
-        # Mask log probabilities for valid active nodes
         if log_prob.ndim > 1:
             log_prob = (log_prob * obs["act_mask"]).sum(dim=-1)
 
-        # 2. Evaluate State Values
         values = self.critic_net(
             target_obs=obs["target_obs"],
             base_obs=obs["base_obs"],
@@ -161,7 +148,6 @@ class SB3URMAPolicy(MultiInputActorCriticPolicy):
         return values, log_prob, entropy
 
     def predict_values(self, obs: Dict[str, torch.Tensor]) -> torch.Tensor:
-        """Used for GAE value estimation."""
         values = self.critic_net(
             target_obs=obs["target_obs"],
             base_obs=obs["base_obs"],

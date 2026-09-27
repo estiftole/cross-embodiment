@@ -43,7 +43,7 @@ class SB3NerveNetPolicy(MultiInputActorCriticPolicy):
             iterations=iterations,
             dec_hidden_dim=dec_hidden_dim,
             action_dim=1,
-            total_action_dim=padded_action_dim  # Now guaranteed to be 16
+            total_action_dim=padded_action_dim
         )
 
         self.critic_net = NerveNetCritic(
@@ -79,10 +79,8 @@ class SB3NerveNetPolicy(MultiInputActorCriticPolicy):
         distribution = Normal(mu, std)
 
         actions = mu if deterministic else distribution.sample()
-
         actions = actions * obs["act_mask"]
 
-        # FIX 2: Zero out the dummy log probabilities before summing!
         log_prob = distribution.log_prob(actions)
         log_prob = log_prob * obs["act_mask"]
         log_prob = log_prob.sum(dim=-1)
