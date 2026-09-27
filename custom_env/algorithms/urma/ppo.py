@@ -83,9 +83,6 @@ class SB3URMAPolicy(MultiInputActorCriticPolicy):
             **self.optimizer_kwargs
         )
 
-    def _build(self, **kwargs):
-        pass
-
     def forward(
         self, obs: Dict[str, torch.Tensor], deterministic: bool = False
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
