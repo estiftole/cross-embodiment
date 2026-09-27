@@ -42,7 +42,7 @@ class EnvTemplate(MujocoEnv):
         self.tmp_model = tempfile.NamedTemporaryFile(suffix=".xml", delete=False, mode="w")
         self.tmp_model.write(scene_xml_content)
         self.tmp_model.close()
-        self.min_torso_height = 1.0
+        self.min_torso_height = 0.5
 
         self.target_pos = np.zeros(2)
         self.target_reach_threshold = 0.5
@@ -239,9 +239,6 @@ class EnvTemplate(MujocoEnv):
         if distance_to_target < self.target_reach_threshold:
             reward += 10.0
             self._sample_target()
-
-        if terminated and distance_to_target >= self.target_reach_threshold:
-            reward -= 50.0
 
         info = {
             "reward_progress": progress_reward,
