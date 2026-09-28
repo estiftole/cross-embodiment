@@ -18,6 +18,7 @@ env = make_env()
 model = PPO.load("checkpoints/normal_ppo_model", env=env)
 
 print("Model loaded successfully!")
+# model.learn(total_timesteps=500_000)
 obs, info = env.reset()
 total_reward = 0.0
 
