@@ -617,6 +617,7 @@ class CrossEmbodimentEnv(gym.Env):
             "act_mask": spaces.Box(0.0, 1.0, shape=(self.max_joints,), dtype=np.float32),
         })
 
+        print("target_update_interval:", target_update_interval)
 
     @property
     def action_space(self):

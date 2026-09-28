@@ -9,8 +9,7 @@ max_episode_steps=250
 def make_env():
     wrapped_env = CrossEmbodimentEnv(
         # render_mode="human",
-        starting_embodiment=starting_embodiment,
-        target_update_interval=3
+        starting_embodiment=starting_embodiment
     )
     wrapped_env = TimeLimit(wrapped_env, max_episode_steps=max_episode_steps)
     return wrapped_env
