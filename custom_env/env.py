@@ -147,17 +147,32 @@ class EnvTemplate(MujocoEnv):
     def _extract_graph_topology(self):
         senders = []
         receivers = []
+        num_joints = len(self.actuated_jnt_ids)
+        actuatable_nodes = list(range(num_joints))
 
-        actuatable_nodes = list(range(1, len(self.actuated_jnt_ids) + 1))
+        last_node_on_body = {}
+        root_nodes = []
+        for node_idx, j_id in enumerate(self.actuated_jnt_ids):
+            body_id = int(self.model.jnt_bodyid[j_id])
+            parent_node = last_node_on_body.get(body_id)
+            if parent_node is None:
+                ancestor = int(self.model.body_parentid[body_id])
+                while ancestor > 0 and ancestor not in last_node_on_body:
+                    ancestor = int(self.model.body_parentid[ancestor])
+                parent_node = last_node_on_body.get(ancestor)
 
-        for node_idx, j_id in enumerate(self.actuated_jnt_ids, start=1):
-            body_id = self.model.jnt_bodyid[j_id]
-            parent_body_id = self.model.body_parentid[body_id]
+            if parent_node is None:
+                root_nodes.append(node_idx)
+            else:
+                senders.extend([parent_node, node_idx])
+                receivers.extend([node_idx, parent_node])
+            last_node_on_body[body_id] = node_idx
 
-            parent_node = 0 if parent_body_id == 1 else parent_body_id - 1
-
-            senders.extend([parent_node, node_idx])
-            receivers.extend([node_idx, parent_node])
+        for a in root_nodes:
+            for b in root_nodes:
+                if a != b:
+                    senders.append(a)
+                    receivers.append(b)
 
         return {
             "senders": torch.tensor(senders, dtype=torch.long),
