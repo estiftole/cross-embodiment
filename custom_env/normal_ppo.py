@@ -9,12 +9,7 @@ os.makedirs("checkpoints", exist_ok=True)
 
 env = make_vec_env(make_env(starting_embodiment, active_joints_only=True), n_envs=8)
 
-policy_kwargs = dict(
-    net_arch=dict(
-        pi=[256, 256],
-        vf=[512, 512],
-    )
-)
+policy_kwargs = dict(net_arch=dict(pi=[256, 256], vf=[256, 256]))
 
 model = PPO(
     "MultiInputPolicy",
