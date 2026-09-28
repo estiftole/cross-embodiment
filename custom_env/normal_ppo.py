@@ -42,7 +42,7 @@ model = PPO(
 )
 
 print("Starting Normal PPO Training Loop...")
-model.learn(total_timesteps=1_000_000)
+model.learn(total_timesteps=2_000_000)
 env.close()
 
 model.save("checkpoints/normal_ppo_model")
