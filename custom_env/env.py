@@ -189,7 +189,7 @@ class EnvTemplate(MujocoEnv):
         progress_reward = (self.previous_distance - distance_from_target) / self.dt
 
         torso_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "torso")
-        upright_reward = self.data.xmat[torso_body_id].reshape(3, 3)[2, 2] * 0.005
+        upright_reward = self.data.xmat[torso_body_id].reshape(3, 3)[2, 2] * 0.002
 
         ctrl_cost = - np.sum(np.square(action)) * 0.000005
         # print(progress_reward, ctrl_cost, upright_reward, self.dt)
