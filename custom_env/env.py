@@ -186,17 +186,20 @@ class EnvTemplate(MujocoEnv):
 
         torso_xy = self.data.qpos[:2]
         distance_from_target = np.linalg.norm(self.target_pos - torso_xy)
-        progress_reward = self.previous_distance - distance_from_target
+        progress_reward = (self.previous_distance - distance_from_target) / self.dt
 
-        ctrl_cost = - np.sum(np.square(action))
+        torso_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "torso")
+        upright_reward = self.data.xmat[torso_body_id].reshape(3, 3)[2, 2] * 5
 
-        reward = (progress_reward * 10) + (ctrl_cost * 0.001)
-        # print(progress_reward, ctrl_cost)
+        ctrl_cost = - np.sum(np.square(action)) * 0.000005
+        # print(progress_reward, ctrl_cost, upright_reward, self.dt)
+
+        reward = progress_reward + ctrl_cost + upright_reward
 
         info = {
             "progress_reward": progress_reward,
-            "cost_ctrl": ctrl_cost,
-            "distance_from_target": distance_from_target,
+            "ctrl_cost": ctrl_cost,
+            "upright_reward": upright_reward,
         }
 
         self.previous_distance = distance_from_target
