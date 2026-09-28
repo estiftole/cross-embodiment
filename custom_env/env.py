@@ -42,10 +42,10 @@ class EnvTemplate(MujocoEnv):
         self.tmp_model = tempfile.NamedTemporaryFile(suffix=".xml", delete=False, mode="w")
         self.tmp_model.write(scene_xml_content)
         self.tmp_model.close()
-        self.min_torso_height = 0.3
 
         self.target_pos = np.zeros(2)
         self.target_reach_threshold = 0.5
+        self.min_torso_height = 0.8
         self.random_change_prob = 0.005
         self.episodes = 0
         self.target_update_interval = target_update_interval
