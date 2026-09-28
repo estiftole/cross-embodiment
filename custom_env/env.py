@@ -46,6 +46,7 @@ class EnvTemplate(MujocoEnv):
         self.target_pos = np.zeros(2)
         self.target_reach_threshold = 0.5
         self.min_torso_height = 0.8
+        self.min_upright = 0.7
         self.random_change_prob = 0.005
         self.episodes = 0
         self.target_update_interval = target_update_interval
