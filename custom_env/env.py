@@ -190,7 +190,7 @@ class EnvTemplate(MujocoEnv):
 
         ctrl_cost = - np.sum(np.square(action))
 
-        reward = (progress_reward * 10) + (ctrl_cost * 0.01)
+        reward = (progress_reward * 10) + (ctrl_cost * 0.001)
         print(progress_reward, ctrl_cost)
 
         info = {
