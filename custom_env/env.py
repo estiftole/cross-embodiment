@@ -180,7 +180,7 @@ class EnvTemplate(MujocoEnv):
             "actuatable_nodes": torch.tensor(actuatable_nodes, dtype=torch.long)
         }
 
-    def _sample_target(self):
+    def _sample_target(self, center=(0.0, 0.0)):
         min_dist = 4
         max_dist = 6
 
@@ -188,8 +188,8 @@ class EnvTemplate(MujocoEnv):
         angle = self.np_random.uniform(-np.pi, np.pi)
 
         self.target_pos = np.array([
-            dist * np.cos(angle),
-            dist * np.sin(angle)
+            center[0] + dist * np.cos(angle),
+            center[1] + dist * np.sin(angle)
         ], dtype=np.float32)
 
         self.model.site_pos[self.target_site_id][:2] = self.target_pos
@@ -227,6 +227,10 @@ class EnvTemplate(MujocoEnv):
 
         self.previous_distance = distance_from_target
 
+        if distance_from_target < self.target_reach_threshold:
+            self._sample_target(center=torso_xy)
+            self.previous_distance = np.linalg.norm(self.target_pos - torso_xy)
+
         if self.render_mode == "human":
             self.render()
 
@@ -256,7 +260,7 @@ class EnvTemplate(MujocoEnv):
         ]).astype(np.float32)
 
         world_lin_vel = self.data.qvel[:3]
-        world_ang_vel = self.data.qvel[3:6]
+        world_ang_vel = R_torso @ self.data.qvel[3:6]
 
         local_lin_vel = R_heading @ world_lin_vel
         local_ang_vel = R_heading @ world_ang_vel
