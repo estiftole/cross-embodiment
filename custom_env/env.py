@@ -233,7 +233,6 @@ class EnvTemplate(MujocoEnv):
 
         self.previous_distance = distance_from_target
 
-        # Resample the target once reached so a long episode keeps a live goal
         if distance_from_target < self.target_reach_threshold:
             self._sample_target(center=torso_xy)
             self.previous_distance = np.linalg.norm(self.target_pos - torso_xy)
@@ -366,9 +365,8 @@ class BipedEnv(EnvTemplate):
         robot_xml_path="custom_models/biped.xml",
         render_mode=None,
     ):
-        # Standing torso centre is ~1.3 m; lying on the ground is ~0.2 m.
         self.min_torso_height = 0.8
-        self.min_upright = 0.7          # ~45 deg tilt
+        self.min_upright = 0.7
         if render_mode:
             super().__init__(
                 robot_xml_path=robot_xml_path,
@@ -518,7 +516,6 @@ class QuadpedEnv(EnvTemplate):
         robot_xml_path="custom_models/quadped.xml",
         render_mode=None,
     ):
-        # Collapsed quadruped torso rests at ~0.18 m.
         self.min_torso_height = 0.3
         self.min_upright = 0.5
         if render_mode:
