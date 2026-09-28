@@ -1,19 +1,16 @@
 from stable_baselines3 import PPO
-from env import CrossEmbodimentEnv
-from gymnasium.wrappers import TimeLimit
+from common import make_env
 
-starting_embodiment="biped"
-max_episode_steps=250
-def make_env():
-    env = CrossEmbodimentEnv(
-        render_mode="human",
-        starting_embodiment=starting_embodiment,
-        target_update_interval=1
-    )
-    env = TimeLimit(env, max_episode_steps=max_episode_steps)
-    return env
+starting_embodiment = "biped"
 
-env = make_env()
+env = make_env(
+    starting_embodiment,
+    render_mode="human",
+    target_update_interval=1,
+    active_joints_only=True
+)()
+env.training = False
+env.norm_reward = False
 
 model = PPO.load("checkpoints/nervenet_ppo_model", env=env)
 
