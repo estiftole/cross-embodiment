@@ -1,20 +1,16 @@
 from env import CrossEmbodimentEnv
 from stable_baselines3 import PPO
 from algorithms.nervenet.ppo import SB3NerveNetPolicy
+
 from stable_baselines3.common.env_util import make_vec_env
-from gymnasium.wrappers import TimeLimit
+from common import make_env
+import os
 
-starting_embodiment="biped"
-max_episode_steps=250
-def make_env():
-    wrapped_env = CrossEmbodimentEnv(
-        # render_mode="human",
-        starting_embodiment=starting_embodiment
-    )
-    wrapped_env = TimeLimit(wrapped_env, max_episode_steps=max_episode_steps)
-    return wrapped_env
+starting_embodiment = "biped"
 
-env = make_vec_env(make_env, n_envs=4)
+os.makedirs("checkpoints", exist_ok=True)
+
+env = make_vec_env(make_env(starting_embodiment, active_joints_only=True), n_envs=8)
 
 policy_kwargs = {
     "obs_enc_hidden_dim": 32,
