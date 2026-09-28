@@ -31,6 +31,7 @@ model = PPO(
     policy=SB3NerveNetPolicy,
     env=env,
     policy_kwargs=policy_kwargs,
+
     learning_rate=3e-4,
     n_steps=2048,
     batch_size=128,
@@ -40,6 +41,8 @@ model = PPO(
     clip_range=0.2,
     ent_coef=0.0,
     verbose=1,
+    seed=42,
+    device="auto",
 )
 
 print("Starting NerveNet PPO Training Loop...")

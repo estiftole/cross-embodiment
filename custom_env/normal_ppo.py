@@ -26,27 +26,18 @@ policy_kwargs = dict(
 model = PPO(
     "MultiInputPolicy",
     env,
-
     policy_kwargs=policy_kwargs,
 
-    learning_rate=1.5e-4,
-
-    n_steps=4096,
+    learning_rate=3e-4,
+    n_steps=2048,
     batch_size=128,
     n_epochs=10,
-
     gamma=0.99,
     gae_lambda=0.95,
-
     clip_range=0.2,
-
     ent_coef=0.0,
-    vf_coef=0.5,
-    max_grad_norm=0.5,
-
     verbose=1,
     seed=42,
-
     device="auto",
 )
 
