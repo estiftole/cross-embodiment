@@ -1,19 +1,13 @@
-from env import CrossEmbodimentEnv
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
-from gymnasium.wrappers import TimeLimit
+from common import make_env, NORM_OBS_KEYS
+import os
 
-starting_embodiment="biped"
-max_episode_steps=250
-def make_env():
-    wrapped_env = CrossEmbodimentEnv(
-        # render_mode="human",
-        starting_embodiment=starting_embodiment
-    )
-    wrapped_env = TimeLimit(wrapped_env, max_episode_steps=max_episode_steps)
-    return wrapped_env
+starting_embodiment = "biped"
 
-env = make_vec_env(make_env, n_envs=4)
+os.makedirs("checkpoints", exist_ok=True)
+
+env = make_vec_env(make_env(starting_embodiment, active_joints_only=True), n_envs=8)
 
 policy_kwargs = dict(
     net_arch=dict(
@@ -41,7 +35,7 @@ model = PPO(
 )
 
 print("Starting Normal PPO Training Loop...")
-model.learn(total_timesteps=1_500_000)
+model.learn(total_timesteps=1_000_000)
 env.close()
 
 model.save("checkpoints/normal_ppo_model")

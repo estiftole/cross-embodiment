@@ -43,10 +43,14 @@ class EnvTemplate(MujocoEnv):
         self.tmp_model.write(scene_xml_content)
         self.tmp_model.close()
 
+        self.min_torso_height = getattr(self, "min_torso_height", 0.3)
+        self.min_upright = getattr(self, "min_upright", 0.5)
+        self.progress_weight = 1.0
+        self.healthy_reward = 1.0
+        self.ctrl_cost_weight = 1e-3
+
         self.target_pos = np.zeros(2)
         self.target_reach_threshold = 0.5
-        self.min_torso_height = 0.8
-        self.min_upright = 0.7
         self.random_change_prob = 0.005
         self.episodes = 0
         self.target_update_interval = target_update_interval
@@ -212,21 +216,24 @@ class EnvTemplate(MujocoEnv):
         ctrl_cost = -np.sum(np.square(action))
 
         healthy = self.is_healthy()
+        # terminated = not healthy
 
         reward = (
-            10.0 * progress_reward
-            + 1.0 * float(healthy)
-            + 1e-3 * ctrl_cost
+            self.progress_weight * progress_reward
+            + self.healthy_reward * float(healthy)
+            + self.ctrl_cost_weight * ctrl_cost
         )
 
         info = {
             "progress_reward": progress_reward,
-            "ctrl_cost": ctrl_cost,
+            "cost_ctrl": ctrl_cost,
+            "distance_from_target": distance_from_target,
             "healthy": healthy,
         }
 
         self.previous_distance = distance_from_target
 
+        # Resample the target once reached so a long episode keeps a live goal
         if distance_from_target < self.target_reach_threshold:
             self._sample_target(center=torso_xy)
             self.previous_distance = np.linalg.norm(self.target_pos - torso_xy)
@@ -252,14 +259,18 @@ class EnvTemplate(MujocoEnv):
         ], dtype=np.float32)
 
         torso_xy = self.data.qpos[:2]
+        # Express the target in the robot's heading frame. In world frame the policy
+        # cannot tell which way it is facing: nothing else in the obs carries yaw.
         target_local = R_heading[:2, :2] @ (self.target_pos - torso_xy)
         target_dist = np.linalg.norm(target_local)
         target_obs = np.concatenate([
-            target_local / max(target_dist, 1e-6),
-            [np.tanh(target_dist / 5.0)],
+            target_local / max(target_dist, 1e-6),   # unit direction, heading frame
+            [np.tanh(target_dist / 5.0)],            # bounded distance
         ]).astype(np.float32)
 
         world_lin_vel = self.data.qvel[:3]
+        # Free-joint qvel[3:6] is already in the torso's local frame (MuJoCo convention);
+        # rotate to world first, then into the heading frame.
         world_ang_vel = R_torso @ self.data.qvel[3:6]
 
         local_lin_vel = R_heading @ world_lin_vel
@@ -355,6 +366,9 @@ class BipedEnv(EnvTemplate):
         robot_xml_path="custom_models/biped.xml",
         render_mode=None,
     ):
+        # Standing torso centre is ~1.3 m; lying on the ground is ~0.2 m.
+        self.min_torso_height = 0.8
+        self.min_upright = 0.7          # ~45 deg tilt
         if render_mode:
             super().__init__(
                 robot_xml_path=robot_xml_path,
@@ -504,6 +518,9 @@ class QuadpedEnv(EnvTemplate):
         robot_xml_path="custom_models/quadped.xml",
         render_mode=None,
     ):
+        # Collapsed quadruped torso rests at ~0.18 m.
+        self.min_torso_height = 0.3
+        self.min_upright = 0.5
         if render_mode:
             super().__init__(
                 robot_xml_path=robot_xml_path,
@@ -649,7 +666,6 @@ class CrossEmbodimentEnv(gym.Env):
             "act_mask": spaces.Box(0.0, 1.0, shape=(self.max_joints,), dtype=np.float32),
         })
 
-        print("target_update_interval:", target_update_interval)
 
     @property
     def action_space(self):
