@@ -181,6 +181,11 @@ class EnvTemplate(MujocoEnv):
 
         mujoco.mj_forward(self.model, self.data)
 
+    def is_healthy(self):
+        torso_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "torso")
+        upright = self.data.xmat[torso_body_id].reshape(3, 3)[2, 2]
+        return (self.data.qpos[2] > self.min_torso_height) and (upright > self.min_upright)
+
     def step(self, action):
         self.do_simulation(action, self.frame_skip)
 
@@ -188,18 +193,20 @@ class EnvTemplate(MujocoEnv):
         distance_from_target = np.linalg.norm(self.target_pos - torso_xy)
         progress_reward = (self.previous_distance - distance_from_target) / self.dt
 
-        torso_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "torso")
-        upright_reward = self.data.xmat[torso_body_id].reshape(3, 3)[2, 2] * 0.001
+        ctrl_cost = -np.sum(np.square(action))
 
-        ctrl_cost = - np.sum(np.square(action)) * 0.000005
-        # print(progress_reward, ctrl_cost, upright_reward, self.dt)
+        healthy = self.is_healthy()
 
-        reward = progress_reward + ctrl_cost + upright_reward
+        reward = (
+            10.0 * progress_reward
+            + 1.0 * float(healthy)
+            + 1e-3 * ctrl_cost
+        )
 
         info = {
             "progress_reward": progress_reward,
             "ctrl_cost": ctrl_cost,
-            "upright_reward": upright_reward,
+            "healthy": healthy,
         }
 
         self.previous_distance = distance_from_target
@@ -225,7 +232,12 @@ class EnvTemplate(MujocoEnv):
         ], dtype=np.float32)
 
         torso_xy = self.data.qpos[:2]
-        target_obs = self.target_pos - torso_xy
+        target_local = R_heading[:2, :2] @ (self.target_pos - torso_xy)
+        target_dist = np.linalg.norm(target_local)
+        target_obs = np.concatenate([
+            target_local / max(target_dist, 1e-6),
+            [np.tanh(target_dist / 5.0)],
+        ]).astype(np.float32)
 
         world_lin_vel = self.data.qvel[:3]
         world_ang_vel = self.data.qvel[3:6]
