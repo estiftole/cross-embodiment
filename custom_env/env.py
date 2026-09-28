@@ -186,18 +186,20 @@ class EnvTemplate(MujocoEnv):
 
         torso_xy = self.data.qpos[:2]
         distance_from_target = np.linalg.norm(self.target_pos - torso_xy)
+        progress_reward = self.previous_distance - distance_from_target
 
-        distance_cost = - distance_from_target * 0.3
-        ctrl_cost = - np.sum(np.square(action)) * 0.05
+        ctrl_cost = - np.sum(np.square(action))
 
-        reward = distance_cost + ctrl_cost
-        # print(distance_cost, ctrl_cost)
+        reward = (progress_reward * 10) + (ctrl_cost * 0.01)
+        print(progress_reward, ctrl_cost)
 
         info = {
-            "distance_cost": distance_cost,
+            "progress_reward": progress_reward,
             "cost_ctrl": ctrl_cost,
             "distance_from_target": distance_from_target,
         }
+
+        self.previous_distance = distance_from_target
 
         if self.render_mode == "human":
             self.render()
@@ -302,6 +304,8 @@ class EnvTemplate(MujocoEnv):
 
         self.episodes += 1
 
+        torso_xy = self.data.qpos[:2]
+        self.previous_distance = np.linalg.norm(self.target_pos - torso_xy)
         return self._get_obs()
 
     def close(self):
