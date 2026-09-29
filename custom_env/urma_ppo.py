@@ -9,7 +9,7 @@ starting_embodiment = "biped"
 
 os.makedirs("checkpoints", exist_ok=True)
 
-env = make_vec_env(make_env(starting_embodiment, active_joints_only=True), n_envs=8)
+env = make_vec_env(make_env(starting_embodiment, use_padding=True), n_envs=8)
 
 policy_kwargs = {
     "enc_hidden_dim": 64,

@@ -7,7 +7,7 @@ env = make_env(
     starting_embodiment,
     render_mode="human",
     target_update_interval=1,
-    active_joints_only=True
+    use_padding=True
 )()
 env.training = False
 env.norm_reward = False

@@ -7,7 +7,7 @@ starting_embodiment = "biped"
 
 os.makedirs("checkpoints", exist_ok=True)
 
-env = make_vec_env(make_env(starting_embodiment, active_joints_only=True), n_envs=8)
+env = make_vec_env(make_env(starting_embodiment, use_padding=True), n_envs=8)
 
 policy_kwargs = dict(net_arch=dict(pi=[256, 256], vf=[256, 256]))
 
@@ -30,7 +30,7 @@ model = PPO(
 )
 
 print("Starting Normal PPO Training Loop...")
-model.learn(total_timesteps=3_000_000)
+model.learn(total_timesteps=1_000_000)
 env.close()
 
 model.save("checkpoints/normal_ppo_model")

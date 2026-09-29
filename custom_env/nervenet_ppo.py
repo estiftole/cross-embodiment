@@ -10,7 +10,7 @@ starting_embodiment = "biped"
 
 os.makedirs("checkpoints", exist_ok=True)
 
-env = make_vec_env(make_env(starting_embodiment, active_joints_only=True), n_envs=8)
+env = make_vec_env(make_env(starting_embodiment, use_padding=True), n_envs=8)
 
 policy_kwargs = {
     "obs_enc_hidden_dim": 32,
@@ -42,7 +42,7 @@ model = PPO(
 )
 
 print("Starting NerveNet PPO Training Loop...")
-model.learn(total_timesteps=2_500_000)
+model.learn(total_timesteps=500_000)
 env.close()
 
 model.save("checkpoints/nervenet_ppo_model")
