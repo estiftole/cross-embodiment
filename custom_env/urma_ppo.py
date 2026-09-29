@@ -1,4 +1,3 @@
-from env import CrossEmbodimentEnv
 from stable_baselines3 import PPO
 from algorithms.urma.ppo import SB3URMAPolicy
 from stable_baselines3.common.env_util import make_vec_env

@@ -1,4 +1,3 @@
-from env import CrossEmbodimentEnv
 from stable_baselines3 import PPO
 from algorithms.nervenet.ppo import SB3NerveNetPolicy
 
