@@ -1,3 +1,4 @@
+from stable_baselines3.common.vec_env import VecNormalize
 from stable_baselines3 import PPO
 from common import make_env
 
@@ -9,6 +10,7 @@ env = make_env(
     target_update_interval=1,
     use_padding=True
 )()
+env = VecNormalize.load("checkpoints/nervenet_ppo_vecnormalize.pkl", env)
 env.training = False
 env.norm_reward = False
 

@@ -216,7 +216,7 @@ class EnvTemplate(MujocoEnv):
         ctrl_cost = -np.sum(np.square(action))
 
         healthy = self.is_healthy()
-        # terminated = not healthy
+        terminated = not healthy
 
         reward = (
             self.progress_weight * progress_reward
@@ -241,7 +241,7 @@ class EnvTemplate(MujocoEnv):
             self.render()
 
         obs = self._get_obs()
-        return obs, reward, False, False, info
+        return obs, reward, terminated, False, info
 
     def _get_obs(self):
         torso_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "torso")

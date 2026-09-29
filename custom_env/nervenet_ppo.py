@@ -2,7 +2,8 @@ from stable_baselines3 import PPO
 from algorithms.nervenet.ppo import SB3NerveNetPolicy
 
 from stable_baselines3.common.env_util import make_vec_env
-from common import make_env
+from stable_baselines3.common.vec_env import VecNormalize
+from common import make_env, NORM_OBS_KEYS
 import os
 
 starting_embodiment = "biped"
@@ -10,6 +11,7 @@ starting_embodiment = "biped"
 os.makedirs("checkpoints", exist_ok=True)
 
 env = make_vec_env(make_env(starting_embodiment, use_padding=True), n_envs=8)
+env = VecNormalize(env, norm_obs=True, norm_reward=True, norm_obs_keys=NORM_OBS_KEYS, clip_obs=10.0)
 
 policy_kwargs = {
     "obs_enc_hidden_dim": 32,
@@ -42,7 +44,9 @@ model = PPO(
 
 print("Starting NerveNet PPO Training Loop...")
 model.learn(total_timesteps=1_000_000)
-env.close()
 
 model.save("checkpoints/nervenet_ppo_model")
+env.save("checkpoints/nervenet_ppo_vecnormalize.pkl")
 print("Model saved successfully.")
+
+env.close()

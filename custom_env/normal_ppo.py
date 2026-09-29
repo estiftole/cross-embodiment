@@ -1,6 +1,7 @@
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
-from common import make_env
+from stable_baselines3.common.vec_env import VecNormalize
+from common import make_env, NORM_OBS_KEYS
 import os
 
 starting_embodiment = "biped"
@@ -8,6 +9,7 @@ starting_embodiment = "biped"
 os.makedirs("checkpoints", exist_ok=True)
 
 env = make_vec_env(make_env(starting_embodiment, use_padding=True), n_envs=8)
+env = VecNormalize(env, norm_obs=True, norm_reward=True, norm_obs_keys=NORM_OBS_KEYS, clip_obs=10.0)
 
 policy_kwargs = dict(net_arch=dict(pi=[256, 256], vf=[256, 256]))
 
@@ -31,7 +33,9 @@ model = PPO(
 
 print("Starting Normal PPO Training Loop...")
 model.learn(total_timesteps=1_000_000)
-env.close()
 
 model.save("checkpoints/normal_ppo_model")
+env.save("checkpoints/normal_ppo_vecnormalize.pkl")
 print("Model saved successfully.")
+
+env.close()
