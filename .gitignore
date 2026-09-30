@@ -4,3 +4,5 @@ checkpoints/
 videos/
 reading/
 logs/
+
+continue_training.py
