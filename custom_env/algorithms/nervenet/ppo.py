@@ -65,15 +65,21 @@ class SB3NerveNetPolicy(MultiInputActorCriticPolicy):
             **self.optimizer_kwargs
         )
 
-    def forward(self, obs: Dict[str, torch.Tensor], deterministic: bool = False) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        mu = self.actor_net(
+    def _mu(self, obs: Dict[str, torch.Tensor]) -> torch.Tensor:
+        return self.actor_net(
             obs["target_obs"], obs["base_obs"], obs["j_obs"],
             obs["senders"], obs["receivers"], obs["actuatable_nodes"]
         )
-        values = self.critic_net(
+
+    def _value(self, obs: Dict[str, torch.Tensor]) -> torch.Tensor:
+        return self.critic_net(
             obs["target_obs"], obs["base_obs"], obs["j_obs"],
             obs["senders"], obs["receivers"]
         )
+
+    def forward(self, obs: Dict[str, torch.Tensor], deterministic: bool = False) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        mu = self._mu(obs)
+        values = self._value(obs)
 
         std = torch.exp(self.actor_net.log_std)
         distribution = Normal(mu, std)
@@ -81,35 +87,25 @@ class SB3NerveNetPolicy(MultiInputActorCriticPolicy):
         actions = mu if deterministic else distribution.sample()
         actions = actions * obs["act_mask"]
 
-        log_prob = distribution.log_prob(actions)
-        log_prob = log_prob * obs["act_mask"]
-        log_prob = log_prob.sum(dim=-1)
+        log_prob = (distribution.log_prob(actions) * obs["act_mask"]).sum(dim=-1)
 
         return actions, values, log_prob
 
     def evaluate_actions(self, obs: Dict[str, torch.Tensor], actions: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        mu = self.actor_net(
-            obs["target_obs"], obs["base_obs"], obs["j_obs"],
-            obs["senders"], obs["receivers"], obs["actuatable_nodes"]
-        )
-        values = self.critic_net(
-            obs["target_obs"], obs["base_obs"], obs["j_obs"],
-            obs["senders"], obs["receivers"]
-        )
+        mu = self._mu(obs)
+        values = self._value(obs)
 
         std = torch.exp(self.actor_net.log_std)
         distribution = Normal(mu, std)
 
-        log_prob = distribution.log_prob(actions) * obs["act_mask"]
-        entropy = distribution.entropy() * obs["act_mask"]
-
-        log_prob = log_prob.sum(dim=-1)
-        entropy = entropy.sum(dim=-1)
+        log_prob = (distribution.log_prob(actions) * obs["act_mask"]).sum(dim=-1)
+        entropy = (distribution.entropy() * obs["act_mask"]).sum(dim=-1)
 
         return values, log_prob, entropy
 
     def predict_values(self, obs: Dict[str, torch.Tensor]) -> torch.Tensor:
-        return self.critic_net(
-            obs["target_obs"], obs["base_obs"], obs["j_obs"],
-            obs["senders"], obs["receivers"]
-        )
+        return self._value(obs)
+
+    def _predict(self, observation: Dict[str, torch.Tensor], deterministic: bool = False) -> torch.Tensor:
+        actions, _, _ = self.forward(observation, deterministic=deterministic)
+        return actions

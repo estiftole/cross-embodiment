@@ -159,3 +159,7 @@ class SB3URMAPolicy(MultiInputActorCriticPolicy):
         if values.ndim > 2:
             values = values.mean(dim=1)
         return values.reshape(-1, 1)
+
+    def _predict(self, observation: Dict[str, torch.Tensor], deterministic: bool = False) -> torch.Tensor:
+        actions, _, _ = self.forward(observation, deterministic=deterministic)
+        return actions
