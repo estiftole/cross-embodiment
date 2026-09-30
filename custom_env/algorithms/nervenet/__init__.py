@@ -28,10 +28,6 @@ def prepare_inputs(obs, graph_meta, device):
         "actuatable_nodes": actuatable_nodes
     }
 
-import torch
-import torch.nn as nn
-from torch.distributions import Normal
-
 class NerveNetActor(nn.Module):
     def __init__(self,
         j_obs_dim, target_obs_dim, base_obs_dim,

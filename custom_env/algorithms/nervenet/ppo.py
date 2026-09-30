@@ -1,4 +1,4 @@
-from typing import Dict, Tuple, Any, Callable
+from typing import Dict, Tuple, Any
 from gymnasium import spaces
 
 import torch

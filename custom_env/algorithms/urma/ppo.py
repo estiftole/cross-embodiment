@@ -7,7 +7,6 @@ from stable_baselines3.common.policies import MultiInputActorCriticPolicy
 from algorithms.urma import URMAActor, URMACritic
 
 
-
 class SB3URMAPolicy(MultiInputActorCriticPolicy):
     def __init__(
         self,
