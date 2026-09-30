@@ -9,7 +9,7 @@ starting_embodiment = "biped"
 
 os.makedirs("checkpoints", exist_ok=True)
 
-env = make_vec_env(make_env(starting_embodiment, use_padding=True), n_envs=8)
+env = make_vec_env(make_env(starting_embodiment, use_padding=False), n_envs=8)
 env = VecNormalize(env, norm_obs=True, norm_reward=True, norm_obs_keys=NORM_OBS_KEYS, clip_obs=10.0)
 
 policy_kwargs = {
