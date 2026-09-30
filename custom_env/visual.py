@@ -1,6 +1,6 @@
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
-from common import make_env
+from env_wrapper import make_env
 import argparse
 
 def visualize(model):
