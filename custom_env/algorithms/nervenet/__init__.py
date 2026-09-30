@@ -4,7 +4,7 @@ from .decoder import ActionDecoder
 
 import torch
 import torch.nn as nn
-from torch.distributions import Normal
+# from torch.distributions import Normal
 
 def prepare_inputs(obs, graph_meta, device):
 
@@ -44,7 +44,7 @@ class NerveNetActor(nn.Module):
         self.gnn = GraphNN(hidden_state_dim, updater_hidden_dim, msg_hidden_dim, msg_dim, iterations)
         self.action_dec = ActionDecoder(hidden_state_dim, dec_hidden_dim, action_dim)
 
-        self.log_std = nn.Parameter(torch.zeros(total_action_dim))
+        # self.log_std = nn.Parameter(torch.zeros(total_action_dim))
 
     def forward(self, target_obs, base_obs, j_obs, senders, receivers, actuatable_nodes):
         target_hidden = self.target_enc(target_obs)
@@ -60,24 +60,25 @@ class NerveNetActor(nn.Module):
 
         mu = self.action_dec(motor_joint_states)
 
-        return mu.squeeze(-1)
+        # return mu.squeeze(-1)
+        return mu
 
-    def get_action_and_log_prob(self, target_obs, base_obs, j_obs, senders, receivers, actuatable_nodes, action=None):
-        mu = self.forward(target_obs, base_obs, j_obs, senders, receivers, actuatable_nodes)
-        std = torch.exp(self.log_std)
-        dist = Normal(mu, std)
+    # def get_action_and_log_prob(self, target_obs, base_obs, j_obs, senders, receivers, actuatable_nodes, action=None):
+    #     mu = self.forward(target_obs, base_obs, j_obs, senders, receivers, actuatable_nodes)
+    #     std = torch.exp(self.log_std)
+    #     dist = Normal(mu, std)
 
-        if action is None:
-            action = dist.sample()
+    #     if action is None:
+    #         action = dist.sample()
 
-        log_prob = dist.log_prob(action)
-        entropy = dist.entropy()
+    #     log_prob = dist.log_prob(action)
+    #     entropy = dist.entropy()
 
-        while log_prob.dim() > 1:
-            log_prob = log_prob.sum(dim=-1)
-            entropy = entropy.sum(dim=-1)
+    #     while log_prob.dim() > 1:
+    #         log_prob = log_prob.sum(dim=-1)
+    #         entropy = entropy.sum(dim=-1)
 
-        return action, log_prob, entropy
+    #     return action, log_prob, entropy
 
 
 class NerveNetCritic(nn.Module):
