@@ -20,7 +20,7 @@ model = PPO(
 
     learning_rate=3e-4,
     n_steps=2048,
-    batch_size=128,
+    batch_size=256,
     n_epochs=10,
     gamma=0.99,
     gae_lambda=0.95,

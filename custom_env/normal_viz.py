@@ -23,6 +23,5 @@ while rounds > 0:
         print(f"Episode finished with total reward: {total_reward:.2f}, "
               f"final distance to target: {info[0]['distance_from_target']:.2f}")
         total_reward = 0.0
-        # obs = env.reset()
-        rounds -= 1          # VecEnv auto-resets
+        rounds -= 1
 env.close()
