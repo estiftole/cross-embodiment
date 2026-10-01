@@ -30,11 +30,16 @@ def prepare_inputs(obs, graph_meta, device):
 
 class NerveNetActor(nn.Module):
     def __init__(self,
-        j_obs_dim, target_obs_dim, base_obs_dim,
-        obs_enc_hidden_dim, hidden_state_dim,
-        updater_hidden_dim, msg_hidden_dim,
-        msg_dim, iterations,
-        dec_hidden_dim, action_dim, total_action_dim
+        j_obs_dim: int, target_obs_dim: int, base_obs_dim: int,
+
+        obs_enc_hidden_dim=32,
+        hidden_state_dim=64,
+
+        updater_hidden_dim=64, msg_hidden_dim=32,
+        msg_dim=16,
+        iterations=4,
+
+        dec_hidden_dim=32, action_dim=1
     ) -> None:
         super().__init__()
         combined_obs_dim = j_obs_dim + base_obs_dim
@@ -46,53 +51,32 @@ class NerveNetActor(nn.Module):
 
         # self.log_std = nn.Parameter(torch.zeros(total_action_dim))
 
-    def forward(self, target_obs, base_obs, j_obs, senders, receivers, actuatable_nodes):
+    def forward(self, target_obs, base_obs, j_obs, senders, receivers, actuatable_nodes, node_batch):
         target_hidden = self.target_enc(target_obs)
-        base_obs_expanded = base_obs.unsqueeze(1).expand(-1, j_obs.size(1), -1)
+        base_obs_per_node = base_obs[node_batch]
 
-        combined_obs = torch.cat([base_obs_expanded, j_obs], dim=-1)
+        combined_obs = torch.cat([base_obs_per_node, j_obs], dim=-1)
         phys_hidden = self.j_enc(combined_obs)
-        gnn_out = self.gnn(phys_hidden, target_hidden, senders, receivers)
+        gnn_out = self.gnn(phys_hidden, target_hidden, senders, receivers, node_batch)
 
-        batch_size = gnn_out.shape[0]
-        batch_idx = torch.arange(batch_size, device=gnn_out.device).unsqueeze(1)
-        motor_joint_states = gnn_out[batch_idx, actuatable_nodes, :]
-
+        motor_joint_states = gnn_out[actuatable_nodes]
         mu = self.action_dec(motor_joint_states)
 
-        # return mu.squeeze(-1)
-        return mu
-
-    # def get_action_and_log_prob(self, target_obs, base_obs, j_obs, senders, receivers, actuatable_nodes, action=None):
-    #     mu = self.forward(target_obs, base_obs, j_obs, senders, receivers, actuatable_nodes)
-    #     std = torch.exp(self.log_std)
-    #     dist = Normal(mu, std)
-
-    #     if action is None:
-    #         action = dist.sample()
-
-    #     log_prob = dist.log_prob(action)
-    #     entropy = dist.entropy()
-
-    #     while log_prob.dim() > 1:
-    #         log_prob = log_prob.sum(dim=-1)
-    #         entropy = entropy.sum(dim=-1)
-
-    #     return action, log_prob, entropy
+        return mu.squeeze(-1)
 
 
 class NerveNetCritic(nn.Module):
     def __init__(self,
-        j_obs_dim, target_obs_dim, base_obs_dim,
+        j_obs_dim: int, target_obs_dim: int, base_obs_dim: int,
 
-        obs_enc_hidden_dim,
-        hidden_state_dim,
+        obs_enc_hidden_dim=32,
+        hidden_state_dim=64,
 
-        updater_hidden_dim, msg_hidden_dim,
-        msg_dim,
-        iterations,
+        updater_hidden_dim=64, msg_hidden_dim=32,
+        msg_dim=16,
+        iterations=4,
 
-        dec_hidden_dim
+        dec_hidden_dim=32
     ) -> None:
         super().__init__()
         combined_obs_dim = j_obs_dim + base_obs_dim
@@ -107,19 +91,21 @@ class NerveNetCritic(nn.Module):
             nn.Linear(dec_hidden_dim, 1)
         )
 
-    def forward(self, target_obs, base_obs, j_obs, senders, receivers):
-        target_obs = target_obs.float()
-        base_obs = base_obs.float()
-        j_obs = j_obs.float()
+    def forward(self, target_obs, base_obs, j_obs, senders, receivers, node_batch):
+        batch_size = target_obs.shape[0]
 
         target_hidden = self.target_enc(target_obs)
-        base_obs_expanded = base_obs.unsqueeze(1).expand(-1, j_obs.size(1), -1)
+        base_obs_per_node = base_obs[node_batch]
 
-        combined_obs = torch.cat([base_obs_expanded, j_obs], dim=-1)
+        combined_obs = torch.cat([base_obs_per_node, j_obs], dim=-1)
         phys_hidden = self.j_enc(combined_obs)
-        gnn_out = self.gnn(phys_hidden, target_hidden, senders, receivers)
+        gnn_out = self.gnn(phys_hidden, target_hidden, senders, receivers, node_batch)
 
-        graph_summary = gnn_out.mean(dim=1)
+        graph_summary = torch.zeros(batch_size, gnn_out.size(-1), device=gnn_out.device)
+        graph_summary.index_add_(0, node_batch, gnn_out)
+
+        node_counts = torch.bincount(node_batch, minlength=batch_size).unsqueeze(1).clamp(min=1)
+        graph_summary = graph_summary / node_counts
 
         value = self.value_dec(graph_summary)
 

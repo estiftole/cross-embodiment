@@ -37,25 +37,15 @@ class GraphNN(nn.Module):
         self.phys_edge = MessageFunction(hidden_state_dim, msg_hidden_dim, msg_dim)
         self.node_updater = UpdateFunction(hidden_state_dim, updater_hidden_dim, msg_dim)
 
-    def forward(self, phys_hidden, goal_hidden, senders, receivers):
-        batch_size, num_nodes, _ = phys_hidden.shape
-        num_edges = senders.shape[1]
-        rx_expanded = receivers.unsqueeze(-1).expand(batch_size, num_edges, self.msg_dim)
-
-        batch_idx = torch.arange(batch_size, device=phys_hidden.device).unsqueeze(1)
+    def forward(self, phys_hidden, goal_hidden, senders, receivers, node_batch):
+        goal_msg = self.broadcast_edge(goal_hidden)[node_batch]
 
         for _ in range(self.iterations):
-            broadcast_msg = self.broadcast_edge(goal_hidden)
-
-            if broadcast_msg.ndim == 2:
-                broadcast_msg = broadcast_msg.unsqueeze(1)
-            msg_accumulator = broadcast_msg.repeat(1, num_nodes, 1)
-
-            sender_states = phys_hidden[batch_idx, senders, :]
-
+            sender_states = phys_hidden[senders]
             phys_msgs = self.phys_edge(sender_states)
 
-            msg_accumulator.scatter_add_(dim=1, index=rx_expanded, src=phys_msgs)
+            msg_accumulator = goal_msg.clone()
+            msg_accumulator.index_add_(0, receivers, phys_msgs)
 
             phys_hidden = self.node_updater(phys_hidden, msg_accumulator)
 
