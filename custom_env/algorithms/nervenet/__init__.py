@@ -37,7 +37,7 @@ class NerveNetActor(nn.Module):
 
         updater_hidden_dim=64, msg_hidden_dim=32,
         msg_dim=16,
-        iterations=4,
+        iterations=12,
 
         dec_hidden_dim=32, action_dim=1
     ) -> None:
@@ -74,7 +74,7 @@ class NerveNetCritic(nn.Module):
 
         updater_hidden_dim=64, msg_hidden_dim=32,
         msg_dim=16,
-        iterations=4,
+        iterations=12,
 
         dec_hidden_dim=32
     ) -> None:
