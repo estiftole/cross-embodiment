@@ -80,14 +80,10 @@ class NetworkWrapper(nn.Module):
             actuatable_nodes=graph_data["actuatable_nodes"],
             node_batch=graph_data["node_batch"],
         )
-        padded_actions = torch.zeros((batch_size, self.max_joints), device=device)
 
-        curr_idx = 0
-        for b in range(batch_size):
-            n_act = graph_data["act_nodes_per_graph"][b]
-            sample_act = real_actions[curr_idx : curr_idx + n_act]
-            padded_actions[b, :n_act] = sample_act.squeeze()
-            curr_idx += n_act
+        padded_actions = torch.zeros((batch_size, self.max_joints), device=device)
+        act_mask = features["act_mask"].bool()
+        padded_actions[act_mask] = real_actions.flatten()
 
         return padded_actions
 
