@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from gymnasium import spaces
 from stable_baselines3.common.policies import MultiInputActorCriticPolicy
+from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 
 from algorithms.nervenet import NerveNetActor, NerveNetCritic
 
@@ -44,6 +45,12 @@ def unpad_and_batch_graphs(features: dict):
         "node_batch": node_batch,
     }
 
+class ObservationExtractor(BaseFeaturesExtractor):
+    def __init__(self, observation_space: spaces.Dict):
+        super().__init__(observation_space, features_dim=1)
+
+    def forward(self, observations: dict) -> dict:
+        return observations
 
 class NetworkWrapper(nn.Module):
     def __init__(self, actor: nn.Module, critic: nn.Module, action_dim: int, max_joints=16):
@@ -114,6 +121,7 @@ class NerveNetPolicy(MultiInputActorCriticPolicy):
             observation_space=observation_space,
             action_space=action_space,
             lr_schedule=lr_schedule,
+            features_extractor_class=ObservationExtractor,
             **kwargs
         )
 
