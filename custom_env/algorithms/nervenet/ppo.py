@@ -8,38 +8,29 @@ from algorithms.nervenet import NerveNetActor, NerveNetCritic
 
 
 def unpad_and_batch_graphs(features: dict):
-    """
-    Converts a padded minibatch dictionary into a single disjoint graph
-    containing ONLY valid nodes and edges.
-    """
-    node_mask = features["node_mask"].bool()    # [B, max_joints]
-    edge_mask = features["edge_mask"].bool()    # [B, max_edges]
-    act_mask = features["act_mask"].bool()      # [B, max_joints]
+    node_mask = features["node_mask"].bool()
+    edge_mask = features["edge_mask"].bool()
+    act_mask = features["act_mask"].bool()
 
     B, max_joints = node_mask.shape
     device = node_mask.device
 
-    # 1. Extract valid joint observations using boolean indexing directly
-    j_obs_disjoint = features["j_obs"][node_mask]  # [Total_Active_Nodes, j_obs_dim]
+    j_obs_disjoint = features["j_obs"][node_mask]
 
-    # 2. Compute cumulative node offsets per graph using prefix sum
-    nodes_per_graph = node_mask.sum(dim=-1)                       # [B] tensor
-    cum_nodes = torch.cumsum(nodes_per_graph, dim=0)              # [B] tensor
-    node_offsets = cum_nodes - nodes_per_graph                    # [B] tensor
+    nodes_per_graph = node_mask.sum(dim=-1)
+    cum_nodes = torch.cumsum(nodes_per_graph, dim=0)
+    node_offsets = cum_nodes - nodes_per_graph
 
-    # 3. Broadcast node offsets across edge and actuator dimensions
-    edge_offsets = node_offsets.unsqueeze(1)                      # [B, 1]
+    edge_offsets = node_offsets.unsqueeze(1)
 
-    senders_offset = features["senders"].long() + edge_offsets     # [B, max_edges]
-    receivers_offset = features["receivers"].long() + edge_offsets # [B, max_edges]
-    act_offset = features["actuatable_nodes"].long() + edge_offsets# [B, max_joints]
+    senders_offset = features["senders"].long() + edge_offsets
+    receivers_offset = features["receivers"].long() + edge_offsets
+    act_offset = features["actuatable_nodes"].long() + edge_offsets
 
-    # 4. Extract valid edges and actuatable nodes using boolean masks
-    senders_disjoint = senders_offset[edge_mask]                  # [Total_Active_Edges]
-    receivers_disjoint = receivers_offset[edge_mask]              # [Total_Active_Edges]
-    act_nodes_disjoint = act_offset[act_mask]                     # [Total_Active_Actuators]
+    senders_disjoint = senders_offset[edge_mask]
+    receivers_disjoint = receivers_offset[edge_mask]
+    act_nodes_disjoint = act_offset[act_mask]
 
-    # 5. Generate node_batch indices vectorially
     batch_idx = torch.arange(B, device=device).unsqueeze(1).expand_as(node_mask)
     node_batch = batch_idx[node_mask]
 
@@ -48,8 +39,8 @@ def unpad_and_batch_graphs(features: dict):
         "senders": senders_disjoint,
         "receivers": receivers_disjoint,
         "actuatable_nodes": act_nodes_disjoint,
-        "nodes_per_graph": nodes_per_graph,                       # Retained as GPU Tensor!
-        "act_nodes_per_graph": act_mask.sum(dim=-1),              # Retained as GPU Tensor!
+        "nodes_per_graph": nodes_per_graph,
+        "act_nodes_per_graph": act_mask.sum(dim=-1),
         "batch_size": B,
         "node_batch": node_batch,
     }
