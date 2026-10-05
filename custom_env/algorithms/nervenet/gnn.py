@@ -20,9 +20,7 @@ class GraphNN(nn.Module):
 
         self.broadcast_edge = MessageFunction(hidden_state_dim, msg_hidden_dim, msg_dim)
         self.phys_edge = MessageFunction(hidden_state_dim, msg_hidden_dim, msg_dim)
-        # GRU update keeps the hidden state bounded across iterations. An unbounded
-        # MLP update with summed messages roughly doubles the state every iteration,
-        # which saturates the action decoder's tanh and zeroes the actor's gradient.
+        # GRU update keeps the hidden state bounded across iterations.
         self.node_updater = nn.GRUCell(msg_dim, hidden_state_dim)
 
     def forward(self, phys_hidden, goal_hidden, senders, receivers, node_batch):

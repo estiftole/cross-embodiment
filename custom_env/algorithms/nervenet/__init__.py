@@ -4,7 +4,6 @@ from .decoder import ActionDecoder
 
 import torch
 import torch.nn as nn
-# from torch.distributions import Normal
 
 def prepare_inputs(obs, graph_meta, device):
 
@@ -48,8 +47,6 @@ class NerveNetActor(nn.Module):
 
         self.gnn = GraphNN(hidden_state_dim, msg_hidden_dim, msg_dim, iterations)
         self.action_dec = ActionDecoder(hidden_state_dim, dec_hidden_dim, action_dim)
-
-        # self.log_std = nn.Parameter(torch.zeros(total_action_dim))
 
     def forward(self, target_obs, base_obs, j_obs, senders, receivers, actuatable_nodes, node_batch):
         target_hidden = self.target_enc(target_obs)

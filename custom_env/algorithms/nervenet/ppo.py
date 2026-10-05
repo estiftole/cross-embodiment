@@ -6,7 +6,6 @@ from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 
 from algorithms.nervenet import NerveNetActor, NerveNetCritic
 
-
 def unpad_and_batch_graphs(features: dict):
     node_mask = features["node_mask"].bool()
     edge_mask = features["edge_mask"].bool()
