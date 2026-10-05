@@ -35,6 +35,7 @@ class GraphNN(nn.Module):
         self.broadcast_edge = MessageFunction(hidden_state_dim, msg_hidden_dim, msg_dim)
         self.phys_edge = MessageFunction(hidden_state_dim, msg_hidden_dim, msg_dim)
         self.node_updater = UpdateFunction(hidden_state_dim, updater_hidden_dim, msg_dim)
+        # self.node_updater = nn.GRUCell(msg_dim, hidden_state_dim)
 
     def forward(self, phys_hidden, goal_hidden, senders, receivers, node_batch):
         goal_msg = self.broadcast_edge(goal_hidden)[node_batch]
