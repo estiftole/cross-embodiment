@@ -3,6 +3,7 @@ import torch.nn as nn
 from gymnasium import spaces
 from stable_baselines3.common.policies import MultiInputActorCriticPolicy
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+from torch.distributions import Normal
 
 from algorithms.nervenet import NerveNetActor, NerveNetCritic
 
@@ -133,3 +134,37 @@ class NerveNetPolicy(MultiInputActorCriticPolicy):
             critic=critic,
             action_dim=self.action_space.shape[0],
         )
+
+    def forward(self, obs: torch.Tensor, deterministic: bool = False):
+        features = self.extract_features(obs)
+        mean_actions = self.forward_actor(features)
+        values = self.forward_critic(features)
+
+        act_mask = features["act_mask"].bool()
+        dist = Normal(mean_actions, self.log_std.exp())
+
+        actions = mean_actions if deterministic else dist.sample()
+
+        # Zero out dummy action slots for safety
+        actions = actions * act_mask.float()
+
+        # MASKED log_prob (sum only across active joints)
+        log_prob = (dist.log_prob(actions) * act_mask).sum(dim=-1)
+
+        return actions, values, log_prob
+
+    def evaluate_actions(self, obs: torch.Tensor, actions: torch.Tensor):
+        features = self.extract_features(obs)
+        mean_actions = self.forward_actor(features)
+        values = self.forward_critic(features)
+
+        act_mask = features["act_mask"].bool()
+        dist = Normal(mean_actions, self.log_std.exp())
+
+        # 1. Masked log_prob: Only sum over active joints
+        log_prob = (dist.log_prob(actions) * act_mask).sum(dim=-1)
+
+        # 2. Masked entropy: Only sum over active joints
+        entropy = (dist.entropy() * act_mask).sum(dim=-1)
+
+        return values, log_prob, entropy
