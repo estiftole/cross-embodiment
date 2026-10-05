@@ -652,6 +652,11 @@ class CrossEmbodimentEnv(gym.Env):
         ee_obs_dim = sample_obs["ee_obs"].shape[-1] if sample_obs["ee_obs"].ndim > 1 else 6
         ee_desc_dim = sample_obs["ee_desc"].shape[-1] if sample_obs["ee_desc"].ndim > 1 else 4
 
+        if "node_ids" in sample_obs:
+            node_id_dim = sample_obs["node_ids"].shape[-1]
+        else:
+            node_id_dim = self.max_joints if self.use_padding else sample_obs["j_obs"].shape[0]
+
         n_j = self.max_joints if self.use_padding else sample_obs["j_obs"].shape[0]
         n_ee = self.max_ee if self.use_padding else sample_obs["ee_obs"].shape[0]
         n_e = self.max_edges if self.use_padding else len(self.active_env.graph_topology["senders"])
@@ -661,6 +666,7 @@ class CrossEmbodimentEnv(gym.Env):
             "base_obs": spaces.Box(-np.inf, np.inf, shape=(base_dim,), dtype=np.float32),
             "j_obs": spaces.Box(-np.inf, np.inf, shape=(n_j, j_obs_dim), dtype=np.float32),
             "j_desc": spaces.Box(-np.inf, np.inf, shape=(n_j, j_desc_dim), dtype=np.float32),
+            "node_ids": spaces.Box(-np.inf, np.inf, shape=(n_j, node_id_dim), dtype=np.float32),
             "node_mask": spaces.Box(0.0, 1.0, shape=(n_j,), dtype=np.float32),
             "ee_obs": spaces.Box(-np.inf, np.inf, shape=(n_ee, ee_obs_dim), dtype=np.float32),
             "ee_desc": spaces.Box(-np.inf, np.inf, shape=(n_ee, ee_desc_dim), dtype=np.float32),
@@ -671,7 +677,6 @@ class CrossEmbodimentEnv(gym.Env):
             "actuatable_nodes": spaces.Box(0, n_j, shape=(n_j,), dtype=np.int64),
             "act_mask": spaces.Box(0.0, 1.0, shape=(n_j,), dtype=np.float32),
         })
-
 
     @property
     def action_space(self):
@@ -715,43 +720,58 @@ class CrossEmbodimentEnv(gym.Env):
 
     def _pad_and_format_obs(self, obs):
         topo = self.active_env.graph_topology
-        senders = topo["senders"].cpu().numpy()
-        receivers = topo["receivers"].cpu().numpy()
-        actuatable_nodes = topo["actuatable_nodes"].cpu().numpy()
+        senders = np.asarray(topo["senders"])
+        receivers = np.asarray(topo["receivers"])
+        actuatable_nodes = np.asarray(topo["actuatable_nodes"])
 
         num_joints = obs["j_obs"].shape[0]
-        num_ee = obs["ee_obs"].shape[0]
+        num_ee = obs["ee_obs"].shape[0] if "ee_obs" in obs else 0
         num_edges = len(senders)
+        num_act = len(actuatable_nodes)
+
+        if "node_ids" in obs:
+            raw_node_ids = obs["node_ids"]
+        else:
+            node_id_dim = self.max_joints if self.use_padding else num_joints
+            raw_node_ids = np.eye(node_id_dim, dtype=np.float32)[:num_joints]
 
         if not self.use_padding:
             obs.update({
+                "node_ids": raw_node_ids,
                 "node_mask": np.ones(num_joints, dtype=np.float32),
                 "ee_mask": np.ones(num_ee, dtype=np.float32),
                 "senders": senders,
                 "receivers": receivers,
                 "edge_mask": np.ones(num_edges, dtype=np.float32),
                 "actuatable_nodes": actuatable_nodes,
-                "act_mask": np.ones(num_joints, dtype=np.float32),
+                "act_mask": np.ones(num_act, dtype=np.float32),
             })
             return obs
 
-        padded_j_obs = np.zeros((self.max_joints, 3), dtype=np.float32)
+        node_id_dim = raw_node_ids.shape[-1]
+        padded_node_ids = np.zeros((self.max_joints, node_id_dim), dtype=np.float32)
+        padded_node_ids[:num_joints] = raw_node_ids
+
+        padded_j_obs = np.zeros((self.max_joints, obs["j_obs"].shape[-1]), dtype=np.float32)
         padded_j_obs[:num_joints] = obs["j_obs"]
 
-        padded_j_desc = np.zeros((self.max_joints, 9), dtype=np.float32)
+        padded_j_desc = np.zeros((self.max_joints, obs["j_desc"].shape[-1]), dtype=np.float32)
         padded_j_desc[:num_joints] = obs["j_desc"]
 
         node_mask = np.zeros(self.max_joints, dtype=np.float32)
         node_mask[:num_joints] = 1.0
 
-        padded_ee_obs = np.zeros((self.max_ee, 6), dtype=np.float32)
-        padded_ee_obs[:num_ee] = obs["ee_obs"]
+        padded_ee_obs = np.zeros((self.max_ee, obs["ee_obs"].shape[-1] if "ee_obs" in obs else 6), dtype=np.float32)
+        if "ee_obs" in obs and num_ee > 0:
+            padded_ee_obs[:num_ee] = obs["ee_obs"]
 
-        padded_ee_desc = np.zeros((self.max_ee, 4), dtype=np.float32)
-        padded_ee_desc[:num_ee] = obs["ee_desc"]
+        padded_ee_desc = np.zeros((self.max_ee, obs["ee_desc"].shape[-1] if "ee_desc" in obs else 4), dtype=np.float32)
+        if "ee_desc" in obs and num_ee > 0:
+            padded_ee_desc[:num_ee] = obs["ee_desc"]
 
         ee_mask = np.zeros(self.max_ee, dtype=np.float32)
-        ee_mask[:num_ee] = 1.0
+        if num_ee > 0:
+            ee_mask[:num_ee] = 1.0
 
         padded_senders = np.zeros(self.max_edges, dtype=np.int64)
         padded_senders[:num_edges] = senders
@@ -763,16 +783,17 @@ class CrossEmbodimentEnv(gym.Env):
         edge_mask[:num_edges] = 1.0
 
         padded_act_nodes = np.zeros(self.max_joints, dtype=np.int64)
-        padded_act_nodes[:num_joints] = actuatable_nodes
+        padded_act_nodes[:num_act] = actuatable_nodes
 
         act_mask = np.zeros(self.max_joints, dtype=np.float32)
-        act_mask[:num_joints] = 1.0
+        act_mask[:num_act] = 1.0
 
         return {
             "target_obs": obs["target_obs"],
             "base_obs": obs["base_obs"],
             "j_obs": padded_j_obs,
             "j_desc": padded_j_desc,
+            "node_ids": padded_node_ids,
             "node_mask": node_mask,
             "ee_obs": padded_ee_obs,
             "ee_desc": padded_ee_desc,

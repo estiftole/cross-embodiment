@@ -28,9 +28,12 @@ def prepare_inputs(obs, graph_meta, device):
         "actuatable_nodes": actuatable_nodes
     }
 
+import torch
+import torch.nn as nn
+
 class NerveNetActor(nn.Module):
     def __init__(self,
-        j_obs_dim: int, target_obs_dim: int, base_obs_dim: int,
+        j_obs_dim: int, target_obs_dim: int, base_obs_dim: int, node_id_dim: int,
 
         obs_enc_hidden_dim=32,
         hidden_state_dim=64,
@@ -42,21 +45,23 @@ class NerveNetActor(nn.Module):
         dec_hidden_dim=32, action_dim=1
     ) -> None:
         super().__init__()
-        combined_obs_dim = j_obs_dim + base_obs_dim
+        # Include node_id_dim so the encoder projects both joint state AND positional identity
+        combined_obs_dim = j_obs_dim + base_obs_dim + node_id_dim
+
         self.target_enc = ObservationEncoder(target_obs_dim, obs_enc_hidden_dim, hidden_state_dim)
         self.j_enc = ObservationEncoder(combined_obs_dim, obs_enc_hidden_dim, hidden_state_dim)
 
         self.gnn = GraphNN(hidden_state_dim, updater_hidden_dim, msg_hidden_dim, msg_dim, iterations)
         self.action_dec = ActionDecoder(hidden_state_dim, dec_hidden_dim, action_dim)
 
-        # self.log_std = nn.Parameter(torch.zeros(total_action_dim))
-
-    def forward(self, target_obs, base_obs, j_obs, senders, receivers, actuatable_nodes, node_batch):
+    def forward(self, target_obs, base_obs, j_obs, node_ids, senders, receivers, actuatable_nodes, node_batch):
         target_hidden = self.target_enc(target_obs)
         base_obs_per_node = base_obs[node_batch]
 
-        combined_obs = torch.cat([base_obs_per_node, j_obs], dim=-1)
+        combined_obs = torch.cat([base_obs_per_node, j_obs, node_ids], dim=-1)
+
         phys_hidden = self.j_enc(combined_obs)
+
         gnn_out = self.gnn(phys_hidden, target_hidden, senders, receivers, node_batch)
 
         motor_joint_states = gnn_out[actuatable_nodes]
@@ -67,7 +72,7 @@ class NerveNetActor(nn.Module):
 
 class NerveNetCritic(nn.Module):
     def __init__(self,
-        j_obs_dim: int, target_obs_dim: int, base_obs_dim: int,
+        j_obs_dim: int, target_obs_dim: int, base_obs_dim: int, node_id_dim: int,
 
         obs_enc_hidden_dim=32,
         hidden_state_dim=64,
@@ -79,7 +84,8 @@ class NerveNetCritic(nn.Module):
         dec_hidden_dim=32
     ) -> None:
         super().__init__()
-        combined_obs_dim = j_obs_dim + base_obs_dim
+        combined_obs_dim = j_obs_dim + base_obs_dim + node_id_dim
+
         self.target_enc = ObservationEncoder(target_obs_dim, obs_enc_hidden_dim, hidden_state_dim)
         self.j_enc = ObservationEncoder(combined_obs_dim, obs_enc_hidden_dim, hidden_state_dim)
 
@@ -91,14 +97,15 @@ class NerveNetCritic(nn.Module):
             nn.Linear(dec_hidden_dim, 1)
         )
 
-    def forward(self, target_obs, base_obs, j_obs, senders, receivers, node_batch):
+    def forward(self, target_obs, base_obs, j_obs, node_ids, senders, receivers, node_batch):
         batch_size = target_obs.shape[0]
 
         target_hidden = self.target_enc(target_obs)
         base_obs_per_node = base_obs[node_batch]
 
-        combined_obs = torch.cat([base_obs_per_node, j_obs], dim=-1)
+        combined_obs = torch.cat([base_obs_per_node, j_obs, node_ids], dim=-1)
         phys_hidden = self.j_enc(combined_obs)
+
         gnn_out = self.gnn(phys_hidden, target_hidden, senders, receivers, node_batch)
 
         graph_summary = torch.zeros(batch_size, gnn_out.size(-1), device=gnn_out.device)

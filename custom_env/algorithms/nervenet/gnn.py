@@ -30,7 +30,6 @@ class UpdateFunction(nn.Module):
 class GraphNN(nn.Module):
     def __init__(self, hidden_state_dim, updater_hidden_dim, msg_hidden_dim, msg_dim, iterations):
         super().__init__()
-        self.msg_dim = msg_dim
         self.iterations = iterations
 
         self.broadcast_edge = MessageFunction(hidden_state_dim, msg_hidden_dim, msg_dim)
@@ -44,9 +43,10 @@ class GraphNN(nn.Module):
             sender_states = phys_hidden[senders]
             phys_msgs = self.phys_edge(sender_states)
 
-            msg_accumulator = goal_msg.clone()
+            msg_accumulator = torch.zeros_like(goal_msg)
             msg_accumulator.index_add_(0, receivers, phys_msgs)
 
-            phys_hidden = self.node_updater(phys_hidden, msg_accumulator)
+            total_msg = msg_accumulator + goal_msg
+            phys_hidden = self.node_updater(phys_hidden, total_msg)
 
         return phys_hidden
