@@ -137,8 +137,8 @@ class NerveNetPolicy(MultiInputActorCriticPolicy):
 
     def forward(self, obs: torch.Tensor, deterministic: bool = False):
         features = self.extract_features(obs)
-        mean_actions = self.forward_actor(features)
-        values = self.forward_critic(features)
+        mean_actions = self.mlp_extractor.forward_actor(features)
+        values = self.mlp_extractor.forward_critic(features)
 
         act_mask = features["act_mask"].bool()
         dist = Normal(mean_actions, self.log_std.exp())
@@ -155,8 +155,8 @@ class NerveNetPolicy(MultiInputActorCriticPolicy):
 
     def evaluate_actions(self, obs: torch.Tensor, actions: torch.Tensor):
         features = self.extract_features(obs)
-        mean_actions = self.forward_actor(features)
-        values = self.forward_critic(features)
+        mean_actions = self.mlp_extractor.forward_actor(features)
+        values = self.mlp_extractor.forward_critic(features)
 
         act_mask = features["act_mask"].bool()
         dist = Normal(mean_actions, self.log_std.exp())
