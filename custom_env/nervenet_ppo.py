@@ -31,7 +31,7 @@ model = PPO(
 )
 
 print("Starting NerveNet PPO Training Loop...")
-model.learn(total_timesteps=1_000_000)
+model.learn(total_timesteps=2_000_000)
 
 model.save("checkpoints/nervenet_ppo_model")
 env.save("checkpoints/nervenet_ppo_vecnormalize.pkl")
