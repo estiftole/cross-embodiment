@@ -13,12 +13,6 @@ from gymnasium import spaces
 
 class EnvTemplate(MujocoEnv):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 100}
-    DEFAULT_CAMERA_CONFIG = {
-        "distance": 10,
-        "elevation": -35.26,
-        "azimuth": 225.0,
-        "lookat": [0.0, 0.0, 1.0],
-    }
 
     def __init__(self,
         target_update_interval,
@@ -55,7 +49,6 @@ class EnvTemplate(MujocoEnv):
             model_path=self.tmp_model.name,
             frame_skip=5,
             observation_space=None,
-            default_camera_config=self.DEFAULT_CAMERA_CONFIG,
             camera_name="tracking_cam",
             **kwargs
         )
