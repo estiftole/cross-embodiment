@@ -15,7 +15,7 @@ def train(args):
     env = make_vec_env(make_env(
         starting_embodiment=starting_embodiment,
         embodiment_update_interval=40,
-        use_padding=True), n_envs=8)
+        use_padding=True), n_envs=16)
     env = VecNormalize(env, norm_obs=True, norm_reward=True, norm_obs_keys=NORM_OBS_KEYS, clip_obs=10.0)
 
     model = PPO(

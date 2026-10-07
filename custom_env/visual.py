@@ -5,7 +5,12 @@ import argparse
 
 def visualize(model):
     starting_embodiment = "biped"
-    env = DummyVecEnv([make_env(starting_embodiment, render_mode="human", target_update_interval=1, use_padding=True)])
+    env = DummyVecEnv([make_env(
+        starting_embodiment=starting_embodiment,
+        render_mode="human",
+        target_update_interval=1,
+        embodiment_update_interval=1 if model != "normal" else None,
+        use_padding=True)])
     env = VecNormalize.load(f"checkpoints/{model}_ppo_vecnormalize.pkl", env)
     env.training = False
     env.norm_reward = False
@@ -14,7 +19,7 @@ def visualize(model):
     print("Model loaded successfully!")
 
     obs = env.reset()
-    total_reward, rounds = 0.0, 5
+    total_reward, rounds = 0.0, 8
     while rounds > 0:
         action, _ = model.predict(obs, deterministic=True)
         obs, reward, done, info = env.step(action)

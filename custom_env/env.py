@@ -626,7 +626,7 @@ class CrossEmbodimentEnv(gym.Env):
         max_joints=16, max_edges=32, max_ee=8,
         use_padding=False,
         embodiment_update_interval=None,
-        render_stride=10
+        render_stride=100
     ):
         super().__init__()
         self.render_mode = render_mode
