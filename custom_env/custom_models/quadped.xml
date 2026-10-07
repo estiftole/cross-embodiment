@@ -7,7 +7,7 @@
 
   <worldbody>
     <body name="torso" pos="0 0 0.85">
-      <camera name="tracking_cam" mode="trackcom" pos="-4 -4 3" xyaxes="1 -1 0 0 1 1"/>
+      <camera name="tracking_cam" mode="trackcom" pos="-6 -6 6" xyaxes="1 -1 0 0 1 1"/>
       <freejoint/>
       <geom name="torso_box" type="box" size="0.3 0.18 0.05"/>
 
