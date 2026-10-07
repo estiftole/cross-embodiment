@@ -18,6 +18,7 @@ def visualize(model):
     while rounds > 0:
         action, _ = model.predict(obs, deterministic=True)
         obs, reward, done, info = env.step(action)
+        env.render()
         total_reward += reward[0]
         if done[0]:
             print(f"Episode finished with total reward: {total_reward:.2f}, "

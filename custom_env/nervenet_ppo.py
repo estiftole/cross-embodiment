@@ -12,7 +12,10 @@ def train(args):
 
     os.makedirs("checkpoints", exist_ok=True)
 
-    env = make_vec_env(make_env(starting_embodiment, use_padding=True), n_envs=8)
+    env = make_vec_env(make_env(
+        starting_embodiment=starting_embodiment,
+        embodiment_update_interval=40,
+        use_padding=True), n_envs=8)
     env = VecNormalize(env, norm_obs=True, norm_reward=True, norm_obs_keys=NORM_OBS_KEYS, clip_obs=10.0)
 
     model = PPO(

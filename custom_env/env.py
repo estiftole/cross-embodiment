@@ -1,4 +1,6 @@
 import os
+import cv2
+import time
 import tempfile
 import mujoco
 from gymnasium.envs.mujoco import MujocoEnv
@@ -622,25 +624,75 @@ class CrossEmbodimentEnv(gym.Env):
         target_update_interval=10,
         render_mode=None,
         max_joints=16, max_edges=32, max_ee=8,
-        use_padding=False):
-
+        use_padding=False,
+        embodiment_update_interval=None,
+        render_stride=10
+    ):
         super().__init__()
         self.render_mode = render_mode
-        self.registry = {
-            "biped": BipedEnv,
-            "quadped": QuadpedEnv,
-        }
         self.use_padding = use_padding
-
-        self.current_embodiment = None
-        self.active_env = None
         self.target_update_interval = target_update_interval
+        self.embodiment_update_interval = embodiment_update_interval
 
         self.max_joints = max_joints
         self.max_edges = max_edges
         self.max_ee = max_ee
 
+        self.episodes = 0
+        self.current_embodiment = None
+        self.active_env = None
+
+        # Render caching & step tracking
+        self.render_stride = render_stride
+        self.step_counter = 0
+        self._cached_combined_frame = None
+        self._frames = {'biped': None, 'quadped': None}
+
+        sub_render_mode = "rgb_array" if render_mode is not None else None
+        self.registry = {
+            "biped": BipedEnv(render_mode=sub_render_mode, target_update_interval=self.target_update_interval),
+            "quadped": QuadpedEnv(render_mode=sub_render_mode, target_update_interval=self.target_update_interval),
+        }
+
         self.switch_embodiment(starting_embodiment)
+
+    def render(self):
+        if self.render_mode is None:
+            return None
+
+        # 1. HARD SKIP: Only generate a new GPU render every N physics steps
+        if self.step_counter % self.render_stride != 0 and self._cached_combined_frame is not None:
+            if self.render_mode == "human":
+                # Pump the GUI event loop briefly so the window doesn't crash/freeze
+                cv2.waitKey(1)
+            return self._cached_combined_frame
+
+        # 2. Render active environment (Inactive uses cached frame from reset)
+        if self._frames['biped'] is None or self.current_embodiment == 'biped':
+            self._frames['biped'] = self.registry['biped'].render()
+
+        if self._frames['quadped'] is None or self.current_embodiment == 'quadped':
+            self._frames['quadped'] = self.registry['quadped'].render()
+
+        frame1 = self._frames['biped']
+        frame2 = self._frames['quadped']
+
+        # Fast resize
+        if frame1.shape[0] != frame2.shape[0]:
+            h, w = frame1.shape[:2]
+            frame2 = cv2.resize(frame2, (int(w * h / frame2.shape[0]), h))
+
+        combined_frame = np.hstack((frame1, frame2))
+
+        # Convert colors once
+        bgr_frame = cv2.cvtColor(combined_frame, cv2.COLOR_RGB2BGR)
+        self._cached_combined_frame = combined_frame
+
+        if self.render_mode == "human":
+            cv2.imshow("Biped (Left) vs Quadruped (Right)", bgr_frame)
+            cv2.waitKey(1)
+
+        return combined_frame
 
     def _update_obs_space(self):
         sample_obs, _ = self.active_env.reset()
@@ -672,7 +724,6 @@ class CrossEmbodimentEnv(gym.Env):
             "act_mask": spaces.Box(0.0, 1.0, shape=(n_j,), dtype=np.float32),
         })
 
-
     @property
     def action_space(self):
         n_act = self.max_joints if self.use_padding else len(self.active_env.actuated_jnt_ids)
@@ -685,11 +736,8 @@ class CrossEmbodimentEnv(gym.Env):
         if self.current_embodiment == embodiment_name and self.active_env is not None:
             return
 
-        if self.active_env is not None:
-            self.active_env.close()
-
         self.current_embodiment = embodiment_name
-        self.active_env = self.registry[embodiment_name](render_mode=self.render_mode, target_update_interval=self.target_update_interval)
+        self.active_env = self.registry[embodiment_name]
 
         self._update_obs_space()
 
@@ -701,17 +749,35 @@ class CrossEmbodimentEnv(gym.Env):
             real_action = action
 
         obs, reward, terminated, truncated, info = self.active_env.step(real_action)
+        for name, env in self.registry.items():
+            if name != self.current_embodiment:
+                zero_act = np.zeros(env.action_space.shape)
+                env.step(zero_act)
         return self._pad_and_format_obs(obs), reward, terminated, truncated, info
 
     def reset(self, **kwargs):
         super().reset(**kwargs)
+
+        if self.embodiment_update_interval is not None and self.episodes > 0 and self.episodes % self.embodiment_update_interval == 0:
+            self.switch_embodiment('quadped' if self.current_embodiment == 'biped' else 'biped')
+
+        self.episodes += 1
         obs, info = self.active_env.reset(**kwargs)
+        for name, env in self.registry.items():
+            if name != self.current_embodiment:
+                env.reset(**kwargs)
+
+        self.step_counter = 0
+        self._frames = {'biped': None, 'quadped': None}
+        self._cached_combined_frame = None
         return self._pad_and_format_obs(obs), info
 
     def close(self):
-        if self.active_env is not None:
-            self.active_env.close()
-            self.active_env = None
+        for env in self.registry.values():
+            env.close()
+        self.active_env = None
+        if self.render_mode == "human":
+            cv2.destroyAllWindows()
 
     def _pad_and_format_obs(self, obs):
         topo = self.active_env.graph_topology
