@@ -36,7 +36,7 @@ class NerveNetActor(nn.Module):
 
         msg_hidden_dim=32,
         msg_dim=16,
-        iterations=4,
+        iterations=8,
 
         dec_hidden_dim=32, action_dim=1
     ) -> None:
