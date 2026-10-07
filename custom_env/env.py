@@ -1,5 +1,5 @@
 import os
-import cv2
+import pygame
 import time
 import tempfile
 import mujoco
@@ -14,7 +14,7 @@ from gymnasium import spaces
 class EnvTemplate(MujocoEnv):
     metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 100}
     DEFAULT_CAMERA_CONFIG = {
-        "distance": 15,
+        "distance": 10,
         "elevation": -35.26,
         "azimuth": 225.0,
         "lookat": [0.0, 0.0, 1.0],
@@ -30,13 +30,7 @@ class EnvTemplate(MujocoEnv):
           <include file="{os.path.abspath(scene_xml_path)}"/>
           <include file="{os.path.abspath(robot_xml_path)}"/>
           <worldbody>
-              <site
-                  name="target"
-                  type="sphere"
-                  pos="0 0 0.5"
-                  size="0.12"
-                  rgba="1 0 0 1"
-              />
+              <site name="target" type="sphere" pos="0 0 0.5" size="0.12" rgba="1 0 0 1"/>
           </worldbody>
         </mujoco>
         """
@@ -62,6 +56,7 @@ class EnvTemplate(MujocoEnv):
             frame_skip=5,
             observation_space=None,
             default_camera_config=self.DEFAULT_CAMERA_CONFIG,
+            camera_name="tracking_cam",
             **kwargs
         )
 
@@ -71,8 +66,6 @@ class EnvTemplate(MujocoEnv):
             "target"
         )
 
-        if self.render_mode:
-            self.setup_camera()
         self._init_embodiment_metadata()
         self.graph_topology = self._extract_graph_topology()
         sample_obs = self._get_obs()
@@ -86,15 +79,6 @@ class EnvTemplate(MujocoEnv):
             )
             for key, value in sample_obs.items()
         })
-
-    def setup_camera(self):
-        self.render()
-        self.mujoco_renderer.viewer.cam.type = mujoco.mjtCamera.mjCAMERA_TRACKING
-        self.mujoco_renderer.viewer.cam.trackbodyid = mujoco.mj_name2id(
-            self.model,
-            mujoco.mjtObj.mjOBJ_BODY,
-            "torso"
-        )
 
     def _init_embodiment_metadata(self):
         self.actuated_jnt_ids = []
@@ -626,7 +610,7 @@ class CrossEmbodimentEnv(gym.Env):
         max_joints=16, max_edges=32, max_ee=8,
         use_padding=False,
         embodiment_update_interval=None,
-        render_stride=100
+        target_fps=60
     ):
         super().__init__()
         self.render_mode = render_mode
@@ -642,11 +626,14 @@ class CrossEmbodimentEnv(gym.Env):
         self.current_embodiment = None
         self.active_env = None
 
-        # Render caching & step tracking
-        self.render_stride = render_stride
-        self.step_counter = 0
+        self.target_fps = target_fps
+        self.frame_interval = 1.0 / target_fps
+        self.last_render_time = 0.0
         self._cached_combined_frame = None
         self._frames = {'biped': None, 'quadped': None}
+
+        # PyGame Window
+        self.window = None
 
         sub_render_mode = "rgb_array" if render_mode is not None else None
         self.registry = {
@@ -660,14 +647,15 @@ class CrossEmbodimentEnv(gym.Env):
         if self.render_mode is None:
             return None
 
-        # 1. HARD SKIP: Only generate a new GPU render every N physics steps
-        if self.step_counter % self.render_stride != 0 and self._cached_combined_frame is not None:
-            if self.render_mode == "human":
-                # Pump the GUI event loop briefly so the window doesn't crash/freeze
-                cv2.waitKey(1)
+        now = time.perf_counter()
+
+        # # 1. Throttle: Return cached frame if enough real time hasn't passed
+        if self._cached_combined_frame is not None and (now - self.last_render_time) < self.frame_interval:
             return self._cached_combined_frame
 
-        # 2. Render active environment (Inactive uses cached frame from reset)
+        self.last_render_time = now
+
+        # 2. Render active environment only; reuse inactive frame to prevent GPU context thrashing
         if self._frames['biped'] is None or self.current_embodiment == 'biped':
             self._frames['biped'] = self.registry['biped'].render()
 
@@ -677,20 +665,25 @@ class CrossEmbodimentEnv(gym.Env):
         frame1 = self._frames['biped']
         frame2 = self._frames['quadped']
 
-        # Fast resize
-        if frame1.shape[0] != frame2.shape[0]:
-            h, w = frame1.shape[:2]
-            frame2 = cv2.resize(frame2, (int(w * h / frame2.shape[0]), h))
-
+        # Both frames are RGB. No conversion needed.
         combined_frame = np.hstack((frame1, frame2))
-
-        # Convert colors once
-        bgr_frame = cv2.cvtColor(combined_frame, cv2.COLOR_RGB2BGR)
         self._cached_combined_frame = combined_frame
 
         if self.render_mode == "human":
-            cv2.imshow("Biped (Left) vs Quadruped (Right)", bgr_frame)
-            cv2.waitKey(1)
+            if self.window is None:
+                pygame.init()
+                pygame.display.init()
+                pygame.display.set_caption("Cross-Embodiment Monitor")
+                # Set window size based on combined frame
+                self.window = pygame.display.set_mode((combined_frame.shape[1], combined_frame.shape[0]))
+
+            # PyGame expects (Width, Height, RGB) - Numpy gives (Height, Width, RGB)
+            surf = pygame.surfarray.make_surface(np.swapaxes(combined_frame, 0, 1))
+            self.window.blit(surf, (0, 0))
+
+            # Non-blocking event pump prevents OS window freezing
+            pygame.event.pump()
+            pygame.display.flip()
 
         return combined_frame
 
@@ -776,8 +769,9 @@ class CrossEmbodimentEnv(gym.Env):
         for env in self.registry.values():
             env.close()
         self.active_env = None
-        if self.render_mode == "human":
-            cv2.destroyAllWindows()
+        if self.window is not None:
+            pygame.quit()
+            self.window = None
 
     def _pad_and_format_obs(self, obs):
         topo = self.active_env.graph_topology
