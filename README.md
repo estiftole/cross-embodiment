@@ -1,1 +1,1 @@
-Cross-embodiment policies are control policies with the ability to control different robot bodies.
+Cross-embodiment policies are control policies with the ability to control different robot bodies. This repository contains my implementations of two algorithms that aim to enable such policies: [NerveNet](https://openreview.net/forum?id=S1sqHMZCb) and the [Universal Robot Morphology Architecture](https://arxiv.org/abs/2409.06366). I have written a technical breakdown of how they work in [my write-up](https://estiftole.github.io/projects/one-policy-any-robot).
